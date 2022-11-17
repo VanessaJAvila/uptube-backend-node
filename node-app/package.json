@@ -1,5 +1,4 @@
 {
-  "name": "m10Up",
   "version": "1.0.0",
   "dependencies": {
     "dotenv": "^16.0.3",
