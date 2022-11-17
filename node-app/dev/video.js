@@ -38,11 +38,10 @@ router.get("/:video_id/comments", async function (req, res) {
         res.status(404).send("There is no video with this ID");
         return;
     }
-    if (comments.length === 0) {
+    if (comments.length === 0){
         res.status(404).send("This video has no comments");
         return;
     }
-
     return res.status(200).json(comments);
 });
 

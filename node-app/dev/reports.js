@@ -7,6 +7,9 @@ const router = express.Router();
 router.get('/action/:action', async function (req, res) {
     const {action} = req.params;
     const reports_by_action = await queryDB(`SELECT * FROM reports WHERE action = ?`, [action]);
+    if (reports_by_action < 1) {
+        return res.status(404).send('There is no reports with this action !');
+    }
     return res.status(200).json(reports_by_action);
 });
 
@@ -21,43 +24,51 @@ router.get('/state/:state', async function (req, res) {
 
 router.get('/reporter/:reporter_id', async function (req, res) {
     const {reporter_id} = req.params;
-    const reporter = await queryDB(`SELECT * FROM reports WHERE reports.reporter_id = ?`,
-        [req.body.reporter_id]);
-    if (reporter.length == undefined) {
+    const reporter = await queryDB(`SELECT * FROM reports WHERE reporter_id = ?`,
+        [reporter_id]);
+    if (!reporter.length ) {
         return res.status(404).send('This user didn´t made any reports yet!');
     }
     const reports_by_reporter = await queryDB(`SELECT * FROM reports WHERE reporter_id = ?`, [reporter_id]);
     return res.status(200).json(reports_by_reporter);
 });
 
-//Edit user reports-----------não actualiza apenas está a remover a info ?!1
+//Update report
 
-router.post('/:reporter_id/edit', async function (req, res) {
+router.post('/:report_id/update', async function (req, res) {
+    const {report_id} = req.params;
     const {state,action,obs} = req.body;
-    const {reporter_id} =req.params;
-    await queryDB(`UPDATE reports set state = ?, action = ?, obs = ? WHERE reports.reporter_id = ?`,
-        [state,action, obs, reporter_id])
+    let report = await queryDB(`SELECT * FROM reports
+        WHERE report_id = ?`, [report_id]);
+    if (report.length === 0) {
+        res.status(404).send("Insert valid data!");
+        return;
+    }
+    await queryDB(`UPDATE reports set state = ?, obs = ?, action = ? WHERE report_id = ?`,
+        [state,obs,action,report_id])
     return res.status(200).send('Report updated!');
 });
-
 
 //Report comment or video
 
 router.post('/new', async function (req, res) {
-    const {report_type_id,comment_id, video_id,state,obs,action, reporter_id} = req.body;
-    await queryDB(`INSERT INTO reports SET = ?`,
-        [report_type_id,comment_id,video_id,state, obs,action, reporter_id])
-    return res.status(200).send('Report created!');
+    const {report_type_id, comment_id, video_id, state, obs, action, reporter_id} = req.body;
+    try {
+        const new_report = await queryDB(`INSERT INTO reports SET ?`, {
+            report_type_id,
+            comment_id,
+            video_id,
+            timestamp_report: new Date(),
+            state,
+            obs,
+            action,
+            reporter_id
+        })
+
+        res.status(200).json({success: true, new_report});
+    } catch(err){
+        return res.status(404).json({success: false, error: err, message: '[ERROR] Insert valid data'});
+    }
 });
-
-
-
-
-
-
-
-
-
-
 
 module.exports = router;
