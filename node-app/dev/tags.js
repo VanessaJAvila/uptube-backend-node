@@ -7,8 +7,13 @@ const router = express.Router();
 
 router.get('/', async function (req, res) {
     const tags_list = await queryDB(`SELECT * FROM tags`)
-    res.json(tags_list);
+    if (tags_list.length === 0) {
+        res.status(404).send("There are no tags");
+        return;
+    }
+    return res.status(200).json(tags_list);
 });
+
 
 //Create new tag
 

@@ -64,7 +64,6 @@ router.post('/new', async function (req, res) {
             action,
             reporter_id
         })
-
         res.status(200).json({success: true, new_report});
     } catch(err){
         return res.status(404).json({success: false, error: err, message: '[ERROR] Insert valid data'});

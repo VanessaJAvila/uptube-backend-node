@@ -6,7 +6,6 @@ const getAllVideos = `SELECT * FROM video`;
 const getVideoById = `SELECT * FROM video WHERE video_id = ?`;
 const getCommentsByVideoID = `SELECT * FROM comments WHERE video_id = ?`;
 
-
 //getAllVideos
 router.get("/", async function (req, res) {
     let videos = await queryDB(getAllVideos);
@@ -43,6 +42,26 @@ router.get("/:video_id/comments", async function (req, res) {
         return;
     }
     return res.status(200).json(comments);
+});
+
+// Upload video
+
+router.post('/upload', async function (req, res) {
+    const {title, thumbnail, description, user_id, duration, url_video} = req.body;
+    try {
+        const new_video = await queryDB(`INSERT INTO video SET ?`, {
+            title,
+            thumbnail,
+            description,
+            date: new Date(),
+            user_id,
+            duration,
+            url_video
+        })
+        res.status(200).json({success: true, new_video});
+    } catch(err){
+        return res.status(404).json({success: false, error: err, message: '[ERROR] Insert valid data'});
+    }
 });
 
 module.exports = router;
