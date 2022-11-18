@@ -8,7 +8,6 @@ const postNewPlaylist = `INSERT INTO playlist SET ?`;
 const allUsers = `SELECT * FROM user WHERE user_id = ?`;
 const getPlaylistByUserId = `SELECT * FROM playlist WHERE creator_id = ?`;
 const getPlaylistByGuestId = `SELECT * FROM playlist_has_invitees WHERE invited_id = ?`;
-const updatePlaylistByID = `UPDATE playlist SET  ? WHERE playlist_id = ?`;;
 
 
 //get playlist by id
@@ -26,7 +25,6 @@ router.get('/:id', async function (req, res) {
 
 //todo: corrigir
 
-// todo: Editar uma playlist, Apagar playlist de user
 router.post('/create', async function (req, res) {
     const {title, visibility, thumbnail} = req.body;
 
@@ -44,16 +42,41 @@ router.post('/create', async function (req, res) {
 
 router.post('/:id/update', async function (req, res) {
     const {id} = req.params;
-    const {updateTitle, updateThumbnail, updateVisibility} = req.body;
+    const {title, thumbnail, visibility} = req.body;
 
     const playlist = await queryDB(getPlaylistById, [id]);
-        const updatePlaylist = await queryDB(`UPDATE playlist SET playlist.title = ?, playlist.thumbnail = ?, playlist.visibility = ?, WHERE playlist_id = ?;`, [updateTitle, updateThumbnail, updateVisibility, id])
+    //const updatePlaylist = await queryDB(`UPDATE playlist SET playlist.title = ?, playlist.thumbnail = ?, playlist.visibility = ? WHERE playlist_id = ?;`, [updateTitle, updateThumbnail, updateVisibility, id])
+
     if (playlist.length === 0) {
         res.status(400).send("ERROR 400: There is no playlist with this ID");
         return;
     }
 
-    return res.status(200).json(updatePlaylist);
+    let update_fields = [];
+    let update_values = [];
+
+    if (title !== undefined) {
+        update_fields.push("title");
+        update_values.push(title);
+    }
+
+    if (thumbnail !== undefined) {
+        update_fields.push("thumbnail");
+        update_values.push(thumbnail);
+    }
+
+    if (visibility !== undefined) {
+        update_fields.push("visibility");
+        update_values.push(visibility);
+    }
+
+    if (update_values.length > 0) {
+        await queryDB("UPDATE playlist SET " + update_fields.map(field => field + " =?").join(", ") + "WHERE playlist_id = ?",
+            [...update_values, id])
+    }
+
+    let playlistEdit = await queryDB("SELECT * FROM playlist WHERE playlist_id=?", [id]);
+    return res.status(200).json(playlistEdit);
 });
 
 //Listar playlists de um user(owner)
