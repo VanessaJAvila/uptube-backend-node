@@ -39,6 +39,8 @@ app.use("/tags", require("./dev/tags.js"));
 app.use("/reports", require("./dev/reports.js"));
 app.use("/user", require("./dev/user.js"));
 app.use("/subscriptions", require("./dev/subscriptions.js"));
+app.use("/reaction", require("./dev/reaction.js"));
+app.use("/notifications", require("./dev/notifications.js"));
 app.use("/playlist", require ("./dev/playlist.js"));
 app.use("/achievements", require ("./dev/achievements.js"));
 app.use("/history", require ("./dev/searchHistory.js"));

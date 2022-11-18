@@ -16,17 +16,6 @@ router.get("/", async function (req, res) {
     return res.status(200).json(videos);
 });
 
-//get video by id
-router.get("/:id", async function (req, res) {
-    const {id} = req.params;
-    let video = await queryDB(getVideoById, [id]);
-    if (video.length === 0) {
-        res.status(404).send("There is no video with this ID");
-        return;
-    }
-    return res.status(200).json(video);
-});
-
 //get comments by video id
 
 router.get("/:video_id/comments", async function (req, res) {
@@ -63,5 +52,72 @@ router.post('/upload', async function (req, res) {
         return res.status(404).json({success: false, error: err, message: '[ERROR] Insert valid data'});
     }
 });
+
+//Update Video details
+router.post('/:video_id/update', async function (req, res) {
+    const {video_id} = req.params;
+    const {title,thumbnail,description, duration, url_video} = req.body;
+    const video = await queryDB(`SELECT * FROM video
+        WHERE video_id = ?`, [video_id]);
+    if (video.length === 0) {
+        return res.status(404).send("Video not found!");
+    }
+
+    let existent_info = [];
+    let update_values = [];
+
+    if (req.body.title !== undefined) {
+        existent_info.push("title");
+        update_values.push(req.body.title);
+    }
+
+    if (req.body.thumbnail !== undefined) {
+        existent_info.push("thumbnail");
+        update_values.push(req.body.thumbnail);
+    }
+
+    if (req.body.description !== undefined) {
+        existent_info.push("description");
+        update_values.push(req.body.description);
+    }
+    if (req.body.duration !== undefined) {
+        existent_info.push("duration");
+        update_values.push(req.body.duration);
+    }
+    if (req.body.url_video !== undefined) {
+        existent_info.push("url_video");
+        update_values.push(req.body.url_video);
+    }
+    if (update_values.length > 0) {
+        await queryDB("UPDATE video SET " + existent_info.map(info => info + " = ?").join(", ") + " WHERE video_id = ?",
+            [...update_values, req.params.video_id]);
+    }
+    return res.status(200).send('Updated!');
+});
+
+// Delete video
+
+router.post('/:video_id/delete', async function (req, res) {
+    const {video_id} = req.params;
+    const video = await queryDB("SELECT * FROM video WHERE video.video_id = ?", [video_id]);
+    if (video.length === 0) {
+        return res.status(404).send('Video id not valid!');
+    }
+    await queryDB(`DELETE FROM video where video_id = ?`, [video[0].video_id])
+    return res.status(200).send('Video removed!');
+});
+
+
+//get video by id
+router.get("/:id", async function (req, res) {
+    const {id} = req.params;
+    let video = await queryDB(getVideoById, [id]);
+    if (video.length === 0) {
+        res.status(404).send("There is no video with this ID");
+        return;
+    }
+    return res.status(200).json(video);
+});
+
 
 module.exports = router;

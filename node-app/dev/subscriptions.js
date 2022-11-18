@@ -3,32 +3,36 @@ const {queryDB} = require("../connection.js");
 const router = express.Router();
 
 
-// Statistics (subscriptions/videos/views/playlist by user_id)------> Como colocar condição para msg de erro ver Git
+// Statistics (subscriptions/videos/views/playlist by user_id)
 //todo: passar endpoit para user.js
 router.get('/stats/:user_id', async function (req, res) {
-    const {user_id} = req.params;
-    const user_report = await queryDB(`SELECT
+    try {
+        const {user_id} = req.params;
+        const user_report = await queryDB(`SELECT
         (select COUNT(user_id) FROM video WHERE user_id = ?) as 'videos',
         (SELECT COUNT(user_id) FROM views WHERE user_id = ?) as 'views',
         (SELECT COUNT(user_following_id) from subscriptions WHERE user_followed_id = ?) as 'followers',
         (SELECT COUNT(playlist_id) FROM playlist WHERE creator_id = ? 
         ) as 'playlists'
         FROM video
-        LIMIT 1; `, [user_id,user_id,user_id,user_id]);
-    /*   if (user_report.videos === 0) {
-       res.status(404).send("User does not have videos or subscriptions!");
-       return;
-       }*/
-    return res.status(200).json(user_report);
+        LIMIT 1; `, [user_id, user_id, user_id, user_id]);
+        res.status(200).json({sucess: true, user_report});
+    } catch (err) {
+        return res.status(404).json({success: false, error: err, message: '[ERROR]'});
+    }
 });
 
-//Get all subscriptions from user-------------------> Como colocar condição para msg de erro ver Git
+//Get all subscriptions from user
 
 router.get('/:user_id', async function (req, res) {
-    const {user_id} = req.params;
-    const followers = await queryDB(`SELECT user_followed_id as 'User', COUNT(user_following_id) as 'Followers'
+    try {
+        const {user_id} = req.params;
+        const followers = await queryDB(`SELECT user_followed_id as 'User', COUNT(user_following_id) as 'Followers'
         FROM subscriptions WHERE user_followed_id = ?`, [user_id]);
-    return res.status(200).json(followers);
+        return res.status(200).json(followers);
+    } catch (err) {
+        return res.status(404).json({success: false, error: err, message: '[ERROR]'});
+    }
 });
 
 //Add Follower
@@ -42,7 +46,7 @@ router.post('/add', async function (req, res) {
         })
         res.status(200).json({success: true, new_subs});
     } catch (err) {
-        return res.status(404).json({success: false, error: err, message: '[ERROR] Insert valid users'});
+        return res.status(404).json({success: false, error: err, message: '[ERROR]'});
     }
 })
 module.exports = router;
