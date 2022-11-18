@@ -87,7 +87,6 @@ router.post('/:user_id/edit', async function (req, res) {
         return;
     }
 
-
     let update_campos = [];
     let update_valores = [];
 
@@ -205,6 +204,20 @@ router.post("/register", async function (req, res) {
     }
 );
 
+const getUserComments = `SELECT * FROM comments WHERE user_id = ?`
+
+router.get("/:id/comments", async function (req, res) {
+    const {id} = req.params;
+    let userComments = await queryDB(getUserComments, [id]);
+    if (userComments.length === 0) {
+        res.status(404).send("This user has no comments");
+        return;
+    }
+    //todo: if user doesnt exist -> error
+    return res.status(200).json(userComments);
+});
+
+//todo: user playlist's
 
 
 module.exports = router;
