@@ -66,7 +66,7 @@ router.post('/comments/:id/delete', async function (req, res) {
         await queryDB(deleteCommentById, [id]);
     }
 
-    return res.status(202).json({success: true, "deleted"});
+    return res.status(202).json({success: true});
 });
 
 // Upload video
