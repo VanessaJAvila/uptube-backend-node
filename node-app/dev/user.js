@@ -11,6 +11,10 @@ const session = require('express-session');
 
 const initializePassport = require('./passport-config');
 
+router.get('/current', function (req, res){
+   res.send(req.user);
+});
+
 
 let passport = require('./passport-config');
 
@@ -18,6 +22,9 @@ let passport = require('./passport-config');
 
 router.post('/login',function(req,res,next){
     passport.authenticate('local', function(err,user,info){
+        if(err){
+            return next(err);
+        }
         if(!user){
             return res.json({message: "Failed to authenticate"})
         }
@@ -28,9 +35,6 @@ router.post('/login',function(req,res,next){
 })
 
 
-
-
-
 //sessao
 
 
@@ -39,24 +43,18 @@ router.get("/sessao", async function (req, res) {
         res.status(401).send("Faça Login");
         return;
     }
-    let user = await queryDB('SELECT * FROM user WHERE user_id =?', [req.session.user_id]);
-    if (!user) {
+    let utilizador = await queryDB('SELECT * FROM user WHERE user_id =?', [req.session.user_id]);
+    if (!utilizador) {
         res.status(401).send("Faça login (não encontrado)");
         return;
     }
 
-    res.send({user, session: req.session});
+    res.send({utilizador, session: req.session});
 });
-
-router.get('/current', function (req, res){
-    res.json({user:req.session});
-});
-
-
 
 router.post("/logout", function (req, res) {
-        req.session.destroy();
-        res.send("Logged out");
+    req.session.destroy();
+    res.send("Logged out");
 });
 
 
@@ -88,6 +86,7 @@ router.post('/:user_id/edit', async function (req, res) {
         res.status(404).send("não existe este user id");
         return;
     }
+
     let update_campos = [];
     let update_valores = [];
 
@@ -124,6 +123,8 @@ router.post('/:user_id/edit', async function (req, res) {
         update_campos.push("birthday");
         update_valores.push(req.body.birthday);
     }
+
+
     if (req.body.administrator !== undefined) {
         update_campos.push("administrator");
         update_valores.push(req.body.administrator);
@@ -148,7 +149,7 @@ router.post('/:user_id/edit', async function (req, res) {
 //delete user
 
 
-router.delete('/:user_id/delete', async function (req, res) {
+router.post('/:user_id/delete', async function (req, res) {
     let user = await queryDB("Select * from user where user_id = ?", [req.params.user_id]);
 
     if (user.length === 0) {
@@ -203,6 +204,20 @@ router.post("/register", async function (req, res) {
     }
 );
 
+const getUserComments = `SELECT * FROM comments WHERE user_id = ?`
+
+router.get("/:id/comments", async function (req, res) {
+    const {id} = req.params;
+    let userComments = await queryDB(getUserComments, [id]);
+    if (userComments.length === 0) {
+        res.status(404).send("This user has no comments");
+        return;
+    }
+    //todo: if user doesnt exist -> error
+    return res.status(200).json(userComments);
+});
+
+//todo: user playlist's
 
 
 module.exports = router;
