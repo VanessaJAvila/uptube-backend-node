@@ -5,14 +5,10 @@ const express = require("express");
 const {queryDB} = require("../connection.js");
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const flash = require('express-flash');
-const session = require('express-session');
 
-const initializePassport = require('./passport-config');
-
-
-router.get('/current', function (req, res){
-   res.send(req.user);
+router.get('/current', function (req, res) {
+    console.log(req.user)
+    res.send(req.user);
 });
 
 
@@ -20,41 +16,38 @@ let passport = require('./passport-config');
 
 //login
 
-router.post('/login',function(req,res,next){
-    passport.authenticate('local', function(err,user,info){
-        if(err){
-            return next(err);
-        }
-        if(!user){
-            return res.json({message: "Failed to authenticate"})
-        }
-        req.session.user_id = user.user_id;
+router.post('/login', function (req, res, next) {
+    passport.authenticate('local',
+        function (err, user, info) {
+            if (err) {
+                return next(err);
+            }
+            if (!user) {
+                return res.status(401).json({message: "Failed to authenticate"})
+            }
 
-        res.json({message:"Fez login",user:user});
-    })(req,res,next);
+            req.login(user, function(){
+                res.json({message: "Fez login", user: user});
+            })
+        })(req, res, next);
 })
 
 
 //sessao
 
-
 router.get("/sessao", async function (req, res) {
-    if (!req.session.user_id) {
+    if (!req.user) {
         res.status(401).send("Faça Login");
         return;
     }
-    let utilizador = await queryDB('SELECT * FROM user WHERE user_id =?', [req.session.user_id]);
-    if (!utilizador) {
-        res.status(401).send("Faça login (não encontrado)");
-        return;
-    }
 
-    res.send({utilizador, session: req.session});
+    res.send({utilizador: req.user});
 });
 
 router.post("/logout", function (req, res) {
-    req.session.destroy();
-    res.send("Logged out");
+    req.logout(function () {
+        res.send("Logged out");
+    });
 });
 
 
@@ -185,17 +178,28 @@ router.post("/register", async function (req, res) {
                 return;
             }
 
+            if (req.body.rep_password === undefined) {
+                res.status(404).send("Password doesn't match");
+                return;
+            }
+            if (req.body.rep_password !== req.body.password) {
+                res.status(404).send("Password doesn't match");
+                return;
+            }
 
             let newuser = await queryDB('INSERT INTO `user` SET ?', {
                 name: req.body.name,
                 email: req.body.email,
                 password: hashedpassword
             });
-            let user = await queryDB('SELECT * FROM user');
 
-            res.json(user);
-            //  res.redirect('/');
+            req.login({
+                user_id: newuser.insertId,
+            }, function (err) {
+                res.json({message: "Registado com sucesso"});
+            })
         } catch (e) {
+            console.log(e)
             res.send("erro no registo")
             //  res.redirect('/register')
         }

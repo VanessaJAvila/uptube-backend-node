@@ -4,14 +4,13 @@ require("dotenv").config();
 app.use(express.urlencoded({extended: true}));
 app.use(express.json());
 
-const flash = require('express-flash');
 const session = require('express-session');
-const initializePassport = require("./dev/passport-config");
-const {queryDB} = require("./connection");
+const FileStore = require('session-file-store')(session);
 
 
 app.use(flash());
 app.use(session({
+    store: new FileStore(),
     secret: process.env.SESSION_SECRET,
     resave:false,
     saveUninitialized:false,
@@ -47,4 +46,6 @@ app.use("/achievements", require ("./dev/achievements.js"));
 app.use("/history", require ("./dev/searchHistory.js"));
 
 
-app.listen(3000);
+
+
+app.listen(5000);
