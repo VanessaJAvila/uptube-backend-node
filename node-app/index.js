@@ -9,6 +9,7 @@ const session = require('express-session');
 const initializePassport = require("./dev/passport-config");
 const {queryDB} = require("./connection");
 
+
 app.use(flash());
 app.use(session({
     secret: process.env.SESSION_SECRET,
@@ -44,5 +45,6 @@ app.use("/notifications", require("./dev/notifications.js"));
 app.use("/playlist", require ("./dev/playlist.js"));
 app.use("/achievements", require ("./dev/achievements.js"));
 app.use("/history", require ("./dev/searchHistory.js"));
+
 
 app.listen(3000);

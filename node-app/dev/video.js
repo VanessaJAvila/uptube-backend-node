@@ -92,7 +92,6 @@ router.post('/upload', async function (req, res) {
 //Update Video details
 router.post('/:video_id/update', async function (req, res) {
     const {video_id} = req.params;
-    const {title,thumbnail,description, duration, url_video} = req.body;
     const video = await queryDB(`SELECT * FROM video
         WHERE video_id = ?`, [video_id]);
     if (video.length === 0) {
