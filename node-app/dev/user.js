@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+const mail = require('nodemailer');
 const express = require("express");
 
 const {queryDB} = require("../connection.js");
@@ -142,7 +142,6 @@ router.post('/:user_id/edit', async function (req, res) {
 
 //delete user
 
-
 router.post('/:user_id/delete', async function (req, res) {
     let user = await queryDB("Select * from user where user_id = ?", [req.params.user_id]);
 
@@ -211,6 +210,7 @@ router.post("/register", async function (req, res) {
 
 const getUserComments = `SELECT * FROM comments WHERE user_id = ?`
 
+
 router.get("/:id/comments", async function (req, res) {
     const {id} = req.params;
     let userComments = await queryDB(getUserComments, [id]);
@@ -222,7 +222,90 @@ router.get("/:id/comments", async function (req, res) {
     return res.status(200).json(userComments);
 });
 
-//todo: user playlist's
+// Get Notifications by receiver_id
 
+const getNotificationsByUser = `SELECT * FROM notifications WHERE receiver_id = ?`;
+
+router.get("/:receiver_id/notifications", async function (req, res) {
+    const {receiver_id} = req.params;
+    let notifications = await queryDB(getNotificationsByUser, [receiver_id]);
+    if (notifications.length === 0) {
+        res.status(404).send("There are no notifications");
+        return;
+    }
+    return res.status(200).json(notifications);
+});
+
+//Add notification
+
+router.post('/:receiver_id/notification', async function (req, res) {
+    try {
+        await queryDB(`INSERT INTO notifications SET ?`, {
+            sender_id:req.body.sender_id,
+            receiver_id:req.params.receiver_id,
+            comment_id:req.body.comment_id,
+            seen: false,
+            date: new Date(),
+            type_id: req.body.type_id
+        })
+         res.status(201).send('Notification created!');
+    } catch (err) {
+        res.status(404).json({success: false, error: err, message: 'Verify data!'});
+    }
+});
+
+// Delete notification by notification_id
+
+router.post('/:notification_id/delete', async function (req, res) {
+
+    const {notification_id} = req.params;
+    const nots = await queryDB("SELECT * FROM notifications WHERE notification_id = ?", [notification_id]);
+    if (nots.length === 0) {
+        return res.status(404).send('Notification not found!');
+    }
+    await queryDB(`DELETE FROM notifications WHERE notification_id = ?`, [notification_id])
+    return res.status(200).send('Notification deleted!');
+});
+
+
+// send mail to a user id with notification of subscription/ register and password recovery
+
+router.get('/:receiver_id/notification/send', async function (req, res) {
+    let mail_receiver = await queryDB(`SELECT email FROM user u LEFT JOIN notifications n on u.user_id = n.receiver_id 
+                        WHERE receiver_id = ?`, [req.params.receiver_id])
+    console.log(mail_receiver)
+    const email = mail_receiver[0].email;
+    const receiver_email = JSON.stringify(email);
+
+// create reusable transporter object
+    const transporter = mail.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: process.env.EMAIL_TEST,
+            pass: process.env.EMAIL_TEST_APP_PSWD,
+        },
+        tls: {
+            rejectUnauthorized: false,
+        }
+    });
+
+// setup email data
+    const mailOptions = {
+        from: 'uptubeproject@gmail.com',
+        to: receiver_email,
+        subject: 'Welcome to UpTube',
+        text: 'Congrats you are now part of the family UpTube! Happy video sharings!'
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+            return res.status(404).json({success: false, message: '[ERROR]'});
+        } else {
+            return res.status(200).json({sucess: true, message: 'Email sent', receiver_email});
+        }
+    });
+});
 
 module.exports = router;

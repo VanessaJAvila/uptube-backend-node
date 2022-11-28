@@ -7,6 +7,8 @@ app.use(express.json());
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 
+
+app.use(flash());
 app.use(session({
     store: new FileStore(),
     secret: process.env.SESSION_SECRET,

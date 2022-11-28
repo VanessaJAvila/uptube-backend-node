@@ -48,6 +48,9 @@ router.post('/new', async function (req, res) {
     }
 });
 
+
+
+
 //Delete reaction by user and video id´s
 
 router.post('/:video_id/:user_id/delete', async function (req, res) {
