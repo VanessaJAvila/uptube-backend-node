@@ -7,7 +7,7 @@ const bcrypt = require('bcrypt');
 const {sendMail} = require("./email");
 
 router.get('/current', function (req, res) {
-    console.log(req.user)
+    console.log(req.user, " req user current")
     res.send(req.user);
 });
 
@@ -40,7 +40,8 @@ router.get("/sessao", async function (req, res) {
         return;
     }
 
-    res.send({utilizador: req.user});
+    res.send({user: req.user});
+    console.log(req.user);
 });
 
 router.post("/logout", function (req, res) {

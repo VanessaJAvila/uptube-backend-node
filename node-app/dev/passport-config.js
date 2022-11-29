@@ -13,6 +13,7 @@ async function getUserById(id) {
     return user[0];
 }
 
+
 const authenticateUser = async (email, password, done) => {
     const user = await getUserByEmail(email);
     if (user == null) {
