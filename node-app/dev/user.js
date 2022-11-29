@@ -1,16 +1,15 @@
 require("dotenv").config();
 const mail = require('nodemailer');
 const express = require("express");
-
 const {queryDB} = require("../connection.js");
 const router = express.Router();
 const bcrypt = require('bcrypt');
+const {sendMail} = require("./email");
 
 router.get('/current', function (req, res) {
     console.log(req.user)
     res.send(req.user);
 });
-
 
 let passport = require('./passport-config');
 
@@ -209,7 +208,6 @@ router.post("/register", async function (req, res) {
 
 const getUserComments = `SELECT * FROM comments WHERE user_id = ?`
 
-
 router.get("/:id/comments", async function (req, res) {
     const {id} = req.params;
     let userComments = await queryDB(getUserComments, [id]);
@@ -239,7 +237,7 @@ router.get("/:receiver_id/notifications", async function (req, res) {
 
 router.post('/:receiver_id/notification', async function (req, res) {
     try {
-        await queryDB(`INSERT INTO notifications SET ?`, {
+        const new_not = await queryDB(`INSERT INTO notifications SET ?`, {
             sender_id:req.body.sender_id,
             receiver_id:req.params.receiver_id,
             comment_id:req.body.comment_id,
@@ -248,6 +246,23 @@ router.post('/:receiver_id/notification', async function (req, res) {
             type_id: req.body.type_id
         })
          res.status(201).send('Notification created!');
+        //Todo construir lógica para despoletar envio automático do mail por Type id
+        switch (new_not.type_id) {
+            case 4:
+                // subscription mail html
+                break;
+            case 7:
+                // report warning mail html
+                break;
+            case 8:
+                // report channel suspension mail html
+                break;
+            case 9:
+                // report banned user mail html
+                break;
+            default:
+            // code block ???
+        }
     } catch (err) {
         res.status(404).json({success: false, error: err, message: 'Verify data!'});
     }
@@ -275,36 +290,8 @@ router.get('/:receiver_id/notification/send', async function (req, res) {
     console.log(mail_receiver)
     const email = mail_receiver[0].email;
     const receiver_email = JSON.stringify(email);
+    await sendMail(receiver_email, req.body.subject, req.body.text);
+})
 
-// create reusable transporter object
-    const transporter = mail.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-            user: process.env.EMAIL_TEST,
-            pass: process.env.EMAIL_TEST_APP_PSWD,
-        },
-        tls: {
-            rejectUnauthorized: false,
-        }
-    });
-
-// setup email data
-    const mailOptions = {
-        from: 'uptubeproject@gmail.com',
-        to: receiver_email,
-        subject: 'Welcome to UpTube',
-        text: 'Congrats you are now part of the family UpTube! Happy video sharings!'
-    };
-
-    transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-            return res.status(404).json({success: false, message: '[ERROR]'});
-        } else {
-            return res.status(200).json({sucess: true, message: 'Email sent', receiver_email});
-        }
-    });
-});
 
 module.exports = router;
