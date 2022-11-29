@@ -1,6 +1,8 @@
 const express = require("express");
 const {queryDB} = require("../connection.js");
 const router = express.Router();
+const {updatePopularity} = require("./utils/popularity.js");
+
 
 const getAllVideos = `SELECT * FROM video`;
 const getVideoById = `SELECT * FROM video WHERE video_id = ?`;
@@ -41,16 +43,32 @@ router.post('/:video_id/comments/create', async function (req, res) {
     const {video_id} = req.params;
     const {comment} = req.body;
 
-    let user_id = 2; //todo ir buscar ao user logado
+    let sender_id = 5       ; //todo ir buscar ao user logado
 
     let data = await queryDB(postNewComment, {
         timestamp: new Date(),
         comment,
-        user_id,
+        sender_id,
         video_id
     });
-
+    await updatePopularity(video_id);
     return res.status(200).json({success: true, comment_id: data.insertId});
+});
+
+//POST request to create view
+router.post('/:video_id/views/create', async function (req, res) {
+    const {video_id} = req.params;
+    const createView = `INSERT INTO views SET ?`;
+    let user_id = 5       ; //todo ir buscar ao user logado
+
+    let data = await queryDB(createView, {
+        user_id,
+        video_id,
+        timestamp_start: new Date(),
+        timestamp_end: 0
+    });
+    await updatePopularity(video_id);
+    return res.status(200).json({success: true, view_id: data.insertId});
 });
 
 // POST request to delete comment by :id
@@ -70,7 +88,6 @@ router.post('/comments/:id/delete', async function (req, res) {
 });
 
 // Upload video
-
 router.post('/upload', async function (req, res) {
     const {title, thumbnail, description, user_id, duration, url_video} = req.body;
     try {
@@ -153,6 +170,7 @@ router.get("/:id", async function (req, res) {
     }
     return res.status(200).json(video);
 });
+
 
 
 module.exports = router;
