@@ -13,13 +13,15 @@ const deleteCommentById = `DELETE FROM comments WHERE comment_id = ?`;
 
 //getAllVideos
 router.get("/", async function (req, res) {
-    let videos = await queryDB(getAllVideos);
-    if (videos.length === 0) {
+    console.log(req.query.search);
+    let videos_list = await queryDB(getAllVideos);
+    if (videos_list.length === 0) {
         res.status(404).send("There are no videos");
         return;
     }
-    return res.status(200).json(videos);
+    res.json(videos_list);
 });
+
 
 //get comments by video id
 router.get("/:video_id/comments", async function (req, res) {
