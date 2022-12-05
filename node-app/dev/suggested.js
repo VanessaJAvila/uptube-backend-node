@@ -41,7 +41,14 @@ router.get("/allvideos", async function (req, res) {
 });
 
 router.get("/50popular", async function (req, res) {
-    let popularVideos = await queryDB(`SELECT * FROM video ORDER BY popularity LIMIT 50`);
+    let popularVideos = await queryDB(`SELECT date(video.date) as 'date', description, duration, popularity, thumbnail, title, url_video, video.user_id, video.video_id, 
+(SELECT count(user_id) FROM reaction WHERE reaction_type_id=1 and video_id=video.video_id) as 'likes',
+(SELECT count(comment_id) FROM comments WHERE video_id=video.video_id) as 'comments',
+(SELECT count(view_id) FROM views WHERE video_id=video.video_id) as 'views',
+(SELECT user.name FROM user WHERE user_id=video.user_id) as 'username',
+(SELECT user.photo FROM user WHERE user_id=video.user_id) as 'photo'
+FROM video 
+LIMIT 50;`);
     if (popularVideos.length === 0) {
         res.status(404).send("There are no videos");
         return;

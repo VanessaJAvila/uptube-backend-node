@@ -15,7 +15,7 @@ const updatePopularity = async (video_id) => {
 
     const popularity = calculatePopularity(views, comments, daysPast, likes, dislikes);
     await queryDB(`UPDATE video SET popularity = ${popularity} WHERE video.video_id = ${video_id}`);
-
+    console.log(views)
 }
 
 module.exports = { updatePopularity }
