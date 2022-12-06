@@ -44,8 +44,6 @@ app.use("/notifications", require("./dev/notifications.js"));
 app.use("/playlist", require ("./dev/playlist.js"));
 app.use("/achievements", require ("./dev/achievements.js"));
 app.use("/history", require ("./dev/searchHistory.js"));
-
-
-
+app.use("/suggested", require ("./dev/suggested.js"));
 
 app.listen(5000);

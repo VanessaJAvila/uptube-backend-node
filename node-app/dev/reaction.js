@@ -1,3 +1,4 @@
+const {updatePopularity} = require("./utils/popularity.js");
 const express = require("express");
 const {queryDB} = require("../connection.js");
 const router = express.Router();
@@ -33,7 +34,7 @@ router.get('/counter/:video_id', async function (req, res) {
 });
 
 // Add reaction
-
+//todo: bug: não é possivel acrescentar reações do user 2 e 3
 router.post('/new', async function (req, res) {
     try {
         await queryDB(`INSERT INTO reaction SET ?`, {
@@ -42,14 +43,13 @@ router.post('/new', async function (req, res) {
             video_id: req.body.video_id,
             reaction_type_id: req.body.reaction_type_id
         })
+        await updatePopularity(req.body.video_id);
         return res.status(201).send('Reaction saved!');
     } catch (err) {
         return res.status(404).json({success: false, error: err, message: 'Verify video_id!'});
     }
+
 });
-
-
-
 
 //Delete reaction by user and video id´s
 
