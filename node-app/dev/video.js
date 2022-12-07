@@ -4,22 +4,24 @@ const router = express.Router();
 const {updatePopularity} = require("./utils/popularity.js");
 
 
-const getAllVideos = `SELECT * FROM video`;
+const getAllVideos = `SELECT * FROM video ORDER BY date DESC`;
 const getVideoById = `SELECT * FROM video WHERE video_id = ?`;
 const getCommentsByVideoID = `SELECT * FROM comments WHERE video_id = ?`;
 const getCommentByID = `SELECT * FROM comments WHERE comment_id = ?`;
 const postNewComment = `INSERT INTO comments SET ?`;
 const deleteCommentById = `DELETE FROM comments WHERE comment_id = ?`;
 
-//getAllVideos
+//getAllVideos or filter videos
 router.get("/", async function (req, res) {
-    console.log(req.query.search);
-    let videos_list = await queryDB(getAllVideos);
+    console.log(req.query.search)
+    //let videos_list = await queryDB(getAllVideos);
+   let videos_list = await queryDB(`SELECT * FROM video WHERE title = ?`, [req.query.search]);
+
     if (videos_list.length === 0) {
-        res.status(404).send("There are no videos");
-        return;
+
+        return res.status(404).send("There are no videos");
     }
-    res.json(videos_list);
+    res.json(videos_list)
 });
 
 
