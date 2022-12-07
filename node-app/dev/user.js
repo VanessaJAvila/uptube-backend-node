@@ -8,6 +8,8 @@ const {queryDB} = require("../connection.js");
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const {sendMail} = require("./email");
+const multer = require("multer");
+const path = require("path");
 
 
 
@@ -22,6 +24,21 @@ const transporter = mail.createTransport({
 
 
 
+let storage = multer.diskStorage({
+    destination: (req, file, callBack) => {
+        callBack(null, './public/images')     // './public/images/' directory name where save the file
+    },
+    filename: (req, file, callBack) => {
+        callBack(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname))
+    }
+})
+
+let upload = multer({
+    storage: storage
+});
+
+
+
 
 
 
@@ -30,7 +47,6 @@ router.get('/current', function (req, res) {
     res.send(req.user);
 });
 
-let passport = require('./passport-config');
 
 
 /*
@@ -204,6 +220,7 @@ router.get("/:user_id", async function (req, res) {
 
 router.post('/:user_id/edit', async function (req, res) {
     let user = await queryDB('SELECT * FROM user WHERE user_id =?', [req.params.user_id]);
+
     if (user.length === 0) {
         res.status(404).send("não existe este user id");
         return;
@@ -225,10 +242,7 @@ router.post('/:user_id/edit', async function (req, res) {
         update_valores.push(req.body.bio);
     }
 
-    if (req.body.photo !== undefined) {
-        update_campos.push("photo");
-        update_valores.push(req.body.photo);
-    }
+
 
     if (req.body.email !== undefined) {
         update_campos.push("email");
@@ -266,6 +280,22 @@ router.post('/:user_id/edit', async function (req, res) {
 
     res.status(200).send(userEdit);
 })
+
+
+router.post("/:user_id/edit/upload", upload.single('photo'), (req, res) => {
+    if (!req.file) {
+        console.log("No file upload");
+    } else {
+        console.log(req.file, "REQ file dentro upload");
+        let imgsrc = 'http://localhost:5000/images/' + req.file.filename
+        let insertData = queryDB( "UPDATE user SET ?  WHERE user_id = ?", [{
+            photo: imgsrc
+        }, req.body.user_id]);
+    }
+    let userPhoto = queryDB("Select * from user where user_id = ?", [req.params.user_id]);
+
+    res.status(200).json(req.file);
+});
 
 //delete user
 
