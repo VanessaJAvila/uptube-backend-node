@@ -59,7 +59,6 @@ router.get('/auth' , passport.authenticate('google', { scope:
 
  */
 
-
 router.post('/login', function (req, res, next) {
     passport.authenticate('local',
         function (err, user, info) {
@@ -377,6 +376,26 @@ router.get("/:id/comments", async function (req, res) {
     //todo: if user doesnt exist -> error
     return res.status(200).json(userComments);
 });
+
+// Statistics (subscriptions/videos/views/playlist by user_id)
+
+router.get('/stats/:user_id', async function (req, res) {
+    try {
+        const {user_id} = req.params;
+        const user_report = await queryDB(`SELECT
+        (select COUNT(user_id) FROM video WHERE user_id = ?) as 'videos',
+        (SELECT COUNT(user_id) FROM views WHERE user_id = ?) as 'views',
+        (SELECT COUNT(user_following_id) from subscriptions WHERE user_followed_id = ?) as 'followers',
+        (SELECT COUNT(playlist_id) FROM playlist WHERE creator_id = ? 
+        ) as 'playlists'
+        FROM video
+        LIMIT 1; `, [user_id, user_id, user_id, user_id]);
+        res.status(200).json({sucess: true, user_report});
+    } catch (err) {
+        return res.status(404).json({success: false, error: err, message: '[ERROR]'});
+    }
+});
+
 
 // Get Notifications by receiver_id
 
