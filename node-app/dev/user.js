@@ -26,10 +26,10 @@ const transporter = mail.createTransport({
 
 let storage = multer.diskStorage({
     destination: (req, file, callBack) => {
-        callBack(null, './public/images')     // './public/images/' directory name where save the file
+        callBack(null, './public/avatar')     // './public/avatar/' directory name where save the file
     },
     filename: (req, file, callBack) => {
-        callBack(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname))
+        callBack(null, file.fieldname + '-' + req.params.user_id + path.extname(file.originalname))
     }
 })
 
@@ -286,10 +286,11 @@ router.post("/:user_id/edit/upload", upload.single('photo'), (req, res) => {
         console.log("No file upload");
     } else {
         console.log(req.file, "REQ file dentro upload");
-        let imgsrc = 'http://localhost:5000/images/' + req.file.filename
+        let imgsrc = 'http://localhost:5000/avatar/' + req.file.filename;
+        console.log(imgsrc, "img src");
         let insertData = queryDB( "UPDATE user SET ?  WHERE user_id = ?", [{
             photo: imgsrc
-        }, req.body.user_id]);
+        }, req.params.user_id]);
     }
     let userPhoto = queryDB("Select * from user where user_id = ?", [req.params.user_id]);
 
