@@ -38,6 +38,19 @@ let upload = multer({
 });
 
 
+let stor = multer.diskStorage({
+    destination: (req, file, callBack) => {
+        callBack(null, './public/header')     // './public/avatar/' directory name where save the file
+    },
+    filename: (req, file, callBack) => {
+        callBack(null, file.fieldname + '-' + req.params.user_id + path.extname(file.originalname))
+    }
+})
+
+let upl = multer({
+    storage: stor
+});
+
 
 
 
@@ -247,10 +260,6 @@ router.post('/:user_id/edit', async function (req, res) {
         update_campos.push("email");
         update_valores.push(req.body.email);
     }
-    if (req.body.header !== undefined) {
-        update_campos.push("header");
-        update_valores.push(req.body.header);
-    }
 
     if (req.body.birthday !== undefined) {
         update_campos.push("birthday");
@@ -281,7 +290,7 @@ router.post('/:user_id/edit', async function (req, res) {
 })
 
 
-router.post("/:user_id/edit/upload", upload.single('photo'), (req, res) => {
+router.post("/:user_id/edit/upload/avatar", upload.single('photo'), (req, res) => {
     if (!req.file) {
         console.log("No file upload");
     } else {
@@ -290,6 +299,23 @@ router.post("/:user_id/edit/upload", upload.single('photo'), (req, res) => {
         console.log(imgsrc, "img src");
         let insertData = queryDB( "UPDATE user SET ?  WHERE user_id = ?", [{
             photo: imgsrc
+        }, req.params.user_id]);
+    }
+    let userPhoto = queryDB("Select * from user where user_id = ?", [req.params.user_id]);
+
+    res.status(200).json(req.file);
+});
+
+
+router.post("/:user_id/edit/upload/header", upl.single('photo'), (req, res) => {
+    if (!req.file) {
+        console.log("No file upload");
+    } else {
+        console.log(req.file, "REQ file dentro upload");
+        let imgsrc = 'http://localhost:5000/header/' + req.file.filename;
+        console.log(imgsrc, "img src");
+        let insertData = queryDB( "UPDATE user SET ?  WHERE user_id = ?", [{
+            header: imgsrc
         }, req.params.user_id]);
     }
     let userPhoto = queryDB("Select * from user where user_id = ?", [req.params.user_id]);
