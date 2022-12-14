@@ -6,7 +6,30 @@ const router = express.Router();
 const getPlaylistById = `SELECT * FROM playlist WHERE playlist_id = ?`
 const postNewPlaylist = `INSERT INTO playlist SET ?`;
 const allUsers = `SELECT * FROM user WHERE user_id = ?`;
-const getPlaylistByUserId = `SELECT * FROM playlist WHERE creator_id = ?`;
+
+/*
+"date": "2022-11-18T00:00:00.000Z",
+        "description": "",
+        "duration": "00:00:00",
+        "popularity": 0,
+        "thumbnail": "",
+        "title": " A maria vai á fonte",
+        "url_video": "",
+        "user_id": 4,
+        "video_id": 5,
+        "likes": 0,
+        "comments": 1,
+        "views": 0,
+        "username": "Sandra chan",
+        "photo": "url/pastas/imagens/imagem3"
+    },
+ */
+const getPlaylistByUserId = `SELECT playlist.playlist_id as playlist_id, playlist.title as playlistTitle, video.video_id as video_id, video.title as videoTitle,  playlist.timestamp as createdTime, playlist.thumbnail as thumbail, playlist.visibility as visibility
+FROM playlist, playlist_has_videos,video
+WHERE playlist.playlist_id=playlist_has_videos.playlist_id
+AND video.video_id=playlist_has_videos.video_id
+AND playlist.creator_id= ?
+ORDER BY playlist.playlist_id`;
 const getPlaylistByGuestId = `SELECT * FROM playlist_has_invitees WHERE invited_id = ?`;
 
 

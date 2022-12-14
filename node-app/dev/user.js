@@ -329,13 +329,18 @@ router.post('/:user_id/delete', async function (req, res) {
     let user = await queryDB("Select * from user where user_id = ?", [req.params.user_id]);
 
     if (user.length === 0) {
-        res.status(400).send("não existe este user");
+        res.status(400).send("não existe este user delete");
         return;
     }
+
+
+
+    req.logout(function () {
+        res.send("user apagado");
+    });
+
     await queryDB("DELETE FROM user WHERE user_id = ?", [req.params.user_id]);
 
-
-    res.send("user apagado");
 });
 
 //criar user usando o bycrypt na password
@@ -377,17 +382,24 @@ router.post("/register", async function (req, res) {
                 password: hashedpassword
             });
 
-            req.login({
-                user_id: newuser.insertId,
-            }, function (err) {
-                res.json({message: "Registado com sucesso"});
+
+            let user = await queryDB('SELECT * FROM user WHERE user_id =?', [newuser.insertId]);
+            user=user[0];
+            console.log(user.user_id, "user endpoint register");
+
+
+            if (!user) {
+                return res.status(401).json({message: "Failed to authenticate"})
+            }
+
+            req.login(user, function () {
+                res.json({message: "Registado e Fez login", user: user});
             })
         } catch (e) {
             console.log(e, "erro no registo")
             res.send("erro no registo")
             //  res.redirect('/register')
         }
-
     }
 );
 
