@@ -18,8 +18,8 @@ LEFT JOIN video_has_tags on video.video_id=video_has_tags.video_id
 LEFT JOIN tags on video_has_tags.tag_id=tags.tag_id
 LEFT JOIN playlist_has_videos on video.video_id=playlist_has_videos.video_id
 LEFT JOIN playlist on playlist_has_videos.playlist_id=playlist.playlist_id
-WHERE tags.name LIKE('%?%') or user.username LIKE('%a?%') or user.name LIKE('%?%') or video.title LIKE('%?%') 
-or playlist.title LIKE('%?%')
+WHERE tags.name LIKE ? or user.username LIKE ? or user.name LIKE ? or video.title LIKE ?
+or playlist.title LIKE ?
 GROUP BY video_id`;
 
 const getAllVideos = `SELECT * FROM video ORDER BY popularity DESC`;
@@ -45,14 +45,14 @@ router.get("/", async function (req, res) {
 router.get("/search", async function (req, res) {
     console.log(req.query.search)
     let videos = await queryDB(getAllVideos);
-    let search_res = await queryDB( getSearch, ['%'+req.query.search+'%']);
+    let search_res = await queryDB( getSearch, ['%'+req.query.search+'%','%'+req.query.search+'%',
+        '%'+req.query.search+'%','%'+req.query.search+'%','%'+req.query.search+'%']);
     if (search_res.length === 0){
         return res.status(404).send("There are no results");
     }if(req.query.search === " "){
         return res.json(videos)
     }
     return res.json(search_res)
-
 });
 
 
