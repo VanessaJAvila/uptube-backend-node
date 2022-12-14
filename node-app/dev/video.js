@@ -4,24 +4,55 @@ const router = express.Router();
 const {updatePopularity} = require("./utils/popularity.js");
 
 
-const getAllVideos = `SELECT * FROM video ORDER BY date DESC`;
+const getSearch = `SELECT video.video_id, video.title, video.thumbnail, video.date, video.duration as 'length', 
+video.url_video as 'url', user.username, user.photo as 'user photo',  COUNT(views.view_id) as 'views',
+ COUNT(CASE reaction.reaction_type_id WHEN '1' then 1 else null end) as 'likes', COUNT(CASE reaction.reaction_type_id WHEN '2' 
+ then 1 else null end) as 'dislikes', 
+    (SELECT GROUP_CONCAT(DISTINCT tags.name SEPARATOR ', ')) as 'tags',
+    (SELECT playlist.title from playlist WHERE playlist_has_videos.playlist_id=playlist.playlist_id) as 'playlist'
+FROM video 
+LEFT JOIN user on video.user_id=user.user_id
+LEFT JOIN views on video.video_id=views.video_id
+LEFT JOIN reaction on video.video_id=reaction.video_id
+LEFT JOIN video_has_tags on video.video_id=video_has_tags.video_id
+LEFT JOIN tags on video_has_tags.tag_id=tags.tag_id
+LEFT JOIN playlist_has_videos on video.video_id=playlist_has_videos.video_id
+LEFT JOIN playlist on playlist_has_videos.playlist_id=playlist.playlist_id
+WHERE tags.name LIKE ? or user.username LIKE ? or user.name LIKE ? or video.title LIKE ?
+or playlist.title LIKE ?
+GROUP BY video_id`;
+
+const getAllVideos = `SELECT * FROM video ORDER BY popularity DESC`;
 const getVideoById = `SELECT * FROM video WHERE video_id = ?`;
 const getCommentsByVideoID = `SELECT * FROM comments WHERE video_id = ?`;
 const getCommentByID = `SELECT * FROM comments WHERE comment_id = ?`;
 const postNewComment = `INSERT INTO comments SET ?`;
 const deleteCommentById = `DELETE FROM comments WHERE comment_id = ?`;
 
-//getAllVideos or filter videos
+//getAllVideos by popularity desc
 router.get("/", async function (req, res) {
     console.log(req.query.search)
-    //let videos_list = await queryDB(getAllVideos);
-   let videos_list = await queryDB(`SELECT * FROM video WHERE title = ?`, [req.query.search]);
-
+    let videos_list = await queryDB(getAllVideos);
     if (videos_list.length === 0) {
-
         return res.status(404).send("There are no videos");
     }
-    res.json(videos_list)
+     return res.json(videos_list)
+});
+
+
+
+// search by username, video, playlist titles and tags
+router.get("/search", async function (req, res) {
+    console.log(req.query.search)
+    let videos = await queryDB(getAllVideos);
+    let search_res = await queryDB( getSearch, ['%'+req.query.search+'%','%'+req.query.search+'%',
+        '%'+req.query.search+'%','%'+req.query.search+'%','%'+req.query.search+'%']);
+    if (search_res.length === 0){
+        return res.status(404).send("There are no results");
+    }if(req.query.search === " "){
+        return res.json(videos)
+    }
+    return res.json(search_res)
 });
 
 

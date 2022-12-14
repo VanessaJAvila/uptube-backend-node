@@ -2,9 +2,6 @@ const express = require("express");
 const {queryDB} = require("../connection.js");
 const router = express.Router();
 
-
-
-
 //Get all subscriptions from user
 
 router.get('/:user_id', async function (req, res) {
