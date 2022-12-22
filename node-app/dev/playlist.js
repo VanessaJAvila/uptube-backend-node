@@ -4,6 +4,15 @@ const {compileQueryParser} = require("express/lib/utils");
 const router = express.Router();
 
 const getPlaylistById = `SELECT * FROM playlist WHERE playlist_id = ?`
+
+const getVideoduration = `SELECT playlist.playlist_id as playlist_id, playlist.title as title,  playlist.timestamp as timestamp, playlist.thumbnail as thumbail, playlist.visibility as visibility, video.duration as duration
+FROM playlist, playlist_has_videos,video
+WHERE playlist.playlist_id=playlist_has_videos.playlist_id
+AND video.video_id=playlist_has_videos.video_id
+AND playlist.creator_id= ?
+ORDER BY playlist.playlist_id`;
+
+
 const postNewPlaylist = `INSERT INTO playlist SET ?`;
 const allUsers = `SELECT * FROM user WHERE user_id = ?`;
 
@@ -24,12 +33,7 @@ const allUsers = `SELECT * FROM user WHERE user_id = ?`;
         "photo": "url/pastas/imagens/imagem3"
     },
  */
-const getPlaylistByUserId = `SELECT playlist.playlist_id as playlist_id, playlist.title as playlistTitle, video.video_id as video_id, video.title as videoTitle,  playlist.timestamp as createdTime, playlist.thumbnail as thumbail, playlist.visibility as visibility
-FROM playlist, playlist_has_videos,video
-WHERE playlist.playlist_id=playlist_has_videos.playlist_id
-AND video.video_id=playlist_has_videos.video_id
-AND playlist.creator_id= ?
-ORDER BY playlist.playlist_id`;
+const getPlaylistByUserId = `SELECT * FROM playlist WHERE creator_id=?`;
 const getPlaylistByGuestId = `SELECT * FROM playlist_has_invitees WHERE invited_id = ?`;
 
 
@@ -119,6 +123,28 @@ router.get("/user/:id", async function (req, res) {
 
     return res.status(200).json(userPlaylist);
 });
+
+//listar playlists com duração de cada video
+router.get("/user/:id/duration/", async function (req, res) {
+    const {id} = req.params;
+    const {playlist_id} = req.params;
+    const userExists = await queryDB(allUsers, [id]);
+    const userPlaylist = await queryDB(getVideoduration, [id]);
+
+    if (userExists.length === 0) {
+        res.status(400).send("ERROR 400: There is no user with this ID");
+        return;
+    }
+    if (userPlaylist.length === 0) {
+        res.status(400).send("ERROR 400: This user doesn't have any playlists");
+        return;
+    }
+
+    return res.status(200).json(userPlaylist);
+});
+
+
+
 
 //Listar playlists de um user(guest)
 //todo: join detalhes da playlist do guest
