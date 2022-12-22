@@ -3,7 +3,11 @@ const {queryDB} = require("../connection.js");
 const router = express.Router();
 
 const getAllAchievements = `SELECT * FROM achievements`;
-const getUserAchievements = `SELECT * FROM user_has_achievements WHERE user_id=?`;
+const getUserAchievements = `SELECT user_id, achievements.achievements_id as id, name as achievement,ranking, level
+FROM user_has_achievements
+left join achievements on user_has_achievements.achievements_id = achievements.achievements_id 
+left join achievement_level on achievements.achievement_level_id = achievement_level.achievement_level_id
+where user_id=?`;
 const addUserAchievements = `INSERT INTO user_has_achievements SET ?`;
 const getUserById = `SELECT * FROM user WHERE user_id = ?`;
 const getAchievementName = `SELECT * FROM achievements WHERE name = ?`;
@@ -67,6 +71,5 @@ router.post("/create", async function (req, res) {
     return res.status(200).json(newAchievement);
 });
 
-router.post("/user/user_id/")
 
 module.exports = router;

@@ -39,8 +39,6 @@ router.get("/", async function (req, res) {
      return res.json(videos_list)
 });
 
-
-
 // search by username, video, playlist titles and tags
 router.get("/search", async function (req, res) {
     console.log(req.query.search)

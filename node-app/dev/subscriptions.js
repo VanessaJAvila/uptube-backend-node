@@ -4,16 +4,27 @@ const router = express.Router();
 
 //Get all subscriptions from user
 
+//Get all avatar & usernames of followed channels
+
+const channelsSubs = `SELECT subscriptions.user_followed_id as 'channel', user.username, user.photo as 'avatar'
+FROM subscriptions
+LEFT JOIN user
+ON subscriptions.user_followed_id=user.user_id
+WHERE user_following_id=?`;
+
 router.get('/:user_id', async function (req, res) {
     try {
         const {user_id} = req.params;
-        const followers = await queryDB(`SELECT user_followed_id as 'User', COUNT(user_following_id) as 'Followers'
+      /*  const followers = await queryDB(`SELECT user_followed_id as 'User', COUNT(user_following_id) as 'Followers'
         FROM subscriptions WHERE user_followed_id = ?`, [user_id]);
-        return res.status(200).json(followers);
+        return res.status(200).json(followers);*/
+        const channels = await queryDB(channelsSubs, [user_id]);
+        return res.status(200).json(channels);
     } catch (err) {
         return res.status(404).json({success: false, error: err, message: '[ERROR]'});
     }
 });
+
 
 //Add Follower
 
@@ -29,4 +40,6 @@ router.post('/add', async function (req, res) {
         return res.status(404).json({success: false, error: err, message: '[ERROR]'});
     }
 })
+
+
 module.exports = router;

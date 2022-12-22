@@ -266,7 +266,6 @@ router.post('/:user_id/edit', async function (req, res) {
         update_valores.push(req.body.birthday);
     }
 
-
     if (req.body.administrator !== undefined) {
         update_campos.push("administrator");
         update_valores.push(req.body.administrator);
@@ -276,7 +275,6 @@ router.post('/:user_id/edit', async function (req, res) {
         update_campos.push("name");
         update_valores.push(req.body.name);
     }
-
 
     if (update_valores.length > 0) {
         await queryDB("UPDATE user SET " + update_campos.map(campo => campo + " = ?").join(", ") + " WHERE user_id = ?",
@@ -329,7 +327,7 @@ router.post('/:user_id/delete', async function (req, res) {
     let user = await queryDB("Select * from user where user_id = ?", [req.params.user_id]);
 
     if (user.length === 0) {
-        res.status(400).send("não existe este user delete");
+        res.status(400).send("não existe este user");
         return;
     }
 
@@ -465,20 +463,6 @@ router.post('/:receiver_id/notification', async function (req, res) {
          res.status(201).send('Notification created!');
         //Todo construir lógica para despoletar envio automático do mail por Type id
         switch (new_not.type_id) {
-            case 4:
-                // subscription mail html
-                break;
-            case 7:
-                // report warning mail html
-                break;
-            case 8:
-                // report channel suspension mail html
-                break;
-            case 9:
-                // report banned user mail html
-                break;
-            default:
-            // code block ???
         }
     } catch (err) {
         res.status(404).json({success: false, error: err, message: 'Verify data!'});
