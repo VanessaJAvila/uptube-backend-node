@@ -53,9 +53,9 @@ router.get('/:id', async function (req, res) {
 //todo: corrigir
 
 router.post('/create', async function (req, res) {
-    const {title, visibility, thumbnail} = req.body;
+    const {title, visibility, thumbnail,creator_id} = req.body;
 
-    let creator_id = 2; //todo ir buscar ao user logado
+    //let creator_id = 2; //todo ir buscar ao user logado
 
     let data = await queryDB(postNewPlaylist, {
         title,
