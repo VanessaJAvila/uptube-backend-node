@@ -35,6 +35,7 @@ let passport = require('./dev/passport-config');
 
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(express.static('public'))
 
 
 
@@ -48,7 +49,10 @@ app.use("/reaction", require("./dev/reaction.js"));
 app.use("/notifications", require("./dev/notifications.js"));
 app.use("/playlist", require ("./dev/playlist.js"));
 app.use("/achievements", require ("./dev/achievements.js"));
-app.use("/history", require ("./dev/searchHistory.js"));
+app.use("/searchhistory", require ("./dev/searchHistory.js"));
 app.use("/suggested", require ("./dev/suggested.js"));
+app.use("/history", require ("./dev/history.js"));
+app.use("/videotutorial", require ("./dev/assets/app.js"));
+app.use("/studio", require ("./dev/studio.js"));
 
 app.listen(5000);
