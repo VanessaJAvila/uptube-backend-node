@@ -24,9 +24,12 @@ GROUP BY video_id`;
 
 const getAllVideos = `SELECT * FROM video ORDER BY popularity DESC`;
 const getVideoById = `SELECT * FROM video WHERE video_id = ?`;
-const getCommentsByVideoID = `SELECT * FROM comments WHERE video_id = ?`;
+
+const getCommentsByVideoID = `SELECT c.comment, c.timestamp, u.username, u.photo
+FROM comments as c 
+LEFT JOIN user as u on c.sender_id=u.user_id
+WHERE video_id = ?`;
 const getCommentByID = `SELECT * FROM comments WHERE comment_id = ?`;
-const postNewComment = `INSERT INTO comments SET ?`;
 const deleteCommentById = `DELETE FROM comments WHERE comment_id = ?`;
 
 //getAllVideos by popularity desc
@@ -57,36 +60,43 @@ router.get("/search", async function (req, res) {
 //get comments by video id
 router.get("/:video_id/comments", async function (req, res) {
     const {video_id} = req.params;
-    let comments = await queryDB(getCommentsByVideoID, [video_id]);
-    let video = await queryDB(getVideoById, [video_id]);
-    if (video.length === 0) {
-        res.status(400).send("ERROR 400: There is no video with this ID");
-        return;
+    if (!video_id) {
+        return res.status(400).send("ERROR 400: No video_id provided in request");
     }
-    if (comments.length === 0) {
-        res.status(400).send("ERROR 400: This video has no comments");
-        return;
+    try {
+        let comments = await queryDB(getCommentsByVideoID, [video_id]);
+        let video = await queryDB(getVideoById, [video_id]);
+        if (video.length === 0) {
+            return res.status(400).send("ERROR 400: There is no video with this ID");
+        }
+        if (comments.length === 0) {
+            return res.status(400).send("ERROR 400: This video has no comments");
+        }
+        return res.status(200).json(comments);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send("ERROR 500: Internal Server Error");
     }
-
-    return res.status(200).json(comments);
 });
+
 
 //POST request to create new comment
-router.post('/:video_id/comments/create', async function (req, res) {
-    const {video_id} = req.params;
-    const {comment} = req.body;
+    router.post('/:video_id/comments/create', async function (req, res) {
+        const {video_id} = req.params;
+        const {comment} = req.body;
 
-    let sender_id = 5       ; //todo ir buscar ao user logado
+        const postNewComment = `INSERT INTO comments (timestamp, comment, sender_id, video_id) VALUES ?`;
 
-    let data = await queryDB(postNewComment, {
-        timestamp: new Date(),
-        comment,
-        sender_id,
-        video_id
+
+        let data = await queryDB(postNewComment, {
+            timestamp: new Date(),
+            comment,
+            sender_id: '1',
+            video_id
+        });
+        await updatePopularity(video_id);
+        return res.status(200).json({success: true, comment_id: data.insertId});
     });
-    await updatePopularity(video_id);
-    return res.status(200).json({success: true, comment_id: data.insertId});
-});
 
 //POST request to create view
 router.post('/:video_id/views/create', async function (req, res) {
@@ -197,6 +207,23 @@ router.post('/:video_id/delete', async function (req, res) {
 router.get("/:id", async function (req, res) {
     const {id} = req.params;
     let video = await queryDB(getVideoById, [id]);
+    if (video.length === 0) {
+        res.status(404).send("There is no video with this ID");
+        return;
+    }
+    return res.status(200).json(video);
+});
+
+//get video by id for streaming page
+router.get("/stream/:id", async function (req, res) {
+    const streamVideoById = `SELECT v.video_id, v.title, v.thumbnail, v.description, v.date, v.duration, v.url_video, u.username, v.user_id, u.photo, COUNT(views.view_id) as 'views',
+(SELECT COUNT(reaction_type_id) FROM reaction WHERE video_id=13 and reaction_type_id = 1) as 'likes',
+(SELECT COUNT(reaction_type_id) FROM reaction WHERE video_id=13 and reaction_type_id = 2) as 'dislikes'FROM video as v
+LEFT JOIN user as u ON v.user_id=u.user_id
+LEFT JOIN views ON v.video_id=views.video_id
+WHERE v.video_id = ?`;
+    const {id} = req.params;
+    let video = await queryDB(streamVideoById, [id]);
     if (video.length === 0) {
         res.status(404).send("There is no video with this ID");
         return;

@@ -12,7 +12,6 @@ const multer = require("multer");
 const path = require("path");
 
 
-
 const transporter = mail.createTransport({
     host: 'smtp-relay.sendinblue.com',
     port: 587,
@@ -21,7 +20,6 @@ const transporter = mail.createTransport({
         pass: process.env.EMAIL_TEST_APP_PSWD,
     }
 });
-
 
 
 let storage = multer.diskStorage({
@@ -52,14 +50,10 @@ let upl = multer({
 });
 
 
-
-
-
 router.get('/current', function (req, res) {
     console.log(req.user, " req user current")
     res.send(req.user);
 });
-
 
 
 /*
@@ -126,12 +120,11 @@ router.post('/passwordrecovery/:token', async function (req, res) {
 
     let update_password = await queryDB('UPDATE user SET ? WHERE user.user_id = ?', [{
         password: hashedpassword,
-       token : null,
-       token_timestamp : null
+        token: null,
+        token_timestamp: null
     }, user.user_id]);
 
-    console.log(user,"user with new pass")
-
+    console.log(user, "user with new pass")
 
 
     const mailOptions = {
@@ -143,15 +136,15 @@ router.post('/passwordrecovery/:token', async function (req, res) {
 
     transporter.sendMail(mailOptions, function (error, response) {
         if (error) {
-            console.log("error",error);
+            console.log("error", error);
             return res.status(500).json({message: '[ERROR SENDING EMAIL]'});
         } else {
-            console.log("Here is the",user, response)
+            console.log("Here is the", user, response)
             return res.status(200).json({message: 'Your password was modified'});
         }
     });
 
-  //  res.status(200).json("Password Alterada com Sucesso!");
+    //  res.status(200).json("Password Alterada com Sucesso!");
 })
 
 
@@ -216,7 +209,7 @@ router.get("/", async function (req, res) {
 });
 
 
-//get 1 user
+//get 1 user by id
 
 router.get("/:user_id", async function (req, res) {
     let user = await queryDB('SELECT * FROM user WHERE user_id =?', [req.params.user_id]);
@@ -242,7 +235,6 @@ router.post('/:user_id/edit', async function (req, res) {
     let update_valores = [];
 
 
-
     if (req.body.username !== undefined) {
         update_campos.push("username");
         update_valores.push(req.body.username);
@@ -253,7 +245,6 @@ router.post('/:user_id/edit', async function (req, res) {
         update_campos.push("bio");
         update_valores.push(req.body.bio);
     }
-
 
 
     if (req.body.email !== undefined) {
@@ -295,7 +286,7 @@ router.post("/:user_id/edit/upload/avatar", upload.single('photo'), (req, res) =
         console.log(req.file, "REQ file dentro upload");
         let imgsrc = 'http://localhost:5000/avatar/' + req.file.filename;
         console.log(imgsrc, "img src");
-        let insertData = queryDB( "UPDATE user SET ?  WHERE user_id = ?", [{
+        let insertData = queryDB("UPDATE user SET ?  WHERE user_id = ?", [{
             photo: imgsrc
         }, req.params.user_id]);
     }
@@ -312,7 +303,7 @@ router.post("/:user_id/edit/upload/header", upl.single('photo'), (req, res) => {
         console.log(req.file, "REQ file dentro upload");
         let imgsrc = 'http://localhost:5000/header/' + req.file.filename;
         console.log(imgsrc, "img src");
-        let insertData = queryDB( "UPDATE user SET ?  WHERE user_id = ?", [{
+        let insertData = queryDB("UPDATE user SET ?  WHERE user_id = ?", [{
             header: imgsrc
         }, req.params.user_id]);
     }
@@ -330,7 +321,6 @@ router.post('/:user_id/delete', async function (req, res) {
         res.status(400).send("não existe este user");
         return;
     }
-
 
 
     req.logout(function () {
@@ -382,7 +372,7 @@ router.post("/register", async function (req, res) {
 
 
             let user = await queryDB('SELECT * FROM user WHERE user_id =?', [newuser.insertId]);
-            user=user[0];
+            user = user[0];
             console.log(user.user_id, "user endpoint register");
 
 
@@ -453,14 +443,14 @@ router.get("/:receiver_id/notifications", async function (req, res) {
 router.post('/:receiver_id/notification', async function (req, res) {
     try {
         const new_not = await queryDB(`INSERT INTO notifications SET ?`, {
-            sender_id:req.body.sender_id,
-            receiver_id:req.params.receiver_id,
-            comment_id:req.body.comment_id,
+            sender_id: req.body.sender_id,
+            receiver_id: req.params.receiver_id,
+            comment_id: req.body.comment_id,
             seen: false,
             date: new Date(),
             type_id: req.body.type_id
         })
-         res.status(201).send('Notification created!');
+        res.status(201).send('Notification created!');
         //Todo construir lógica para despoletar envio automático do mail por Type id
         switch (new_not.type_id) {
         }
@@ -492,6 +482,26 @@ router.get('/:receiver_id/notification/send', async function (req, res) {
     const email = mail_receiver[0].email;
     const receiver_email = JSON.stringify(email);
     await sendMail(receiver_email, req.body.subject, req.body.text);
+})
+
+router.get('/watchhistory/:user_id', async function (req, res) {
+    const {user_id} = req.params;
+    let watchhistory = await queryDB(`SELECT DATE(views.timestamp_start) as 'date', video.title, views.video_id, video.thumbnail, video.duration, video.description, video.url_video, user.username as 'channel', COUNT(views.video_id) as 'total_views'
+        FROM views
+        LEFT JOIN video on views.video_id=video.video_id
+        LEFT JOIN user on video.user_id=user.user_id
+        WHERE views.user_id = ?
+        GROUP BY video.title
+        ORDER BY date ASC`, [user_id])
+    if (user_id.length === 0){
+        res.status(404).send("Please insert user");
+        return;
+    }
+    if (watchhistory.length === 0) {
+        res.status(404).send("User has no history");
+        return;
+    }
+    return res.status(200).json(watchhistory)
 })
 
 

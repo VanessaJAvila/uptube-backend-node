@@ -24,10 +24,19 @@ const checkIfIDisValid = () => {
 }
 checkIfIDisValid();
 
+const folderName = path.join(__dirname, '../public/videos', `${video_key}`);
+
+fs.mkdir(folderName, { recursive: true }, (error) => {
+    if (error) {
+        console.error(error);
+    } else {
+        console.log(`Folder ${folderName} created`);
+    }
+});
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'public/videos')
+        cb(null, 'public/videos/'+video_key+'/')
     },
     filename: (req, file, cb) => {
         cb(null, video_key + path.extname(file.originalname))
@@ -67,17 +76,9 @@ router.post('/upload', upload, async (req, res) => {
             video_key = shortID();
             return res.status(200).send("No video to upload");
         }
-        const folderName = path.join(__dirname, '../public/videos', `${video_key}`);
 
-        fs.mkdir(folderName, { recursive: true }, (error) => {
-            if (error) {
-                console.error(error);
-            } else {
-                console.log(`Folder ${folderName} created`);
-            }
-        });
 
-        const videoPath = `./public/videos/${video_key}${path.extname(file.originalname)}`;
+        const videoPath = `./public/videos/${video_key}/${video_key}${path.extname(file.originalname)}`;
         ffmpeg.setFfmpegPath(ffmpegPath)
         ffmpeg.setFfprobePath(ffprobePath)
 
@@ -96,26 +97,25 @@ router.post('/upload', upload, async (req, res) => {
         function command (input, output) {
             return new Promise((resolve, reject) => {
                 ffmpeg(input)
-                    .outputOptions(['-c:v libx264', `-b:v 1000k`, '-c:a aac', '-b:a 58k'])
-                    .output(output)
-                    .screenshots({
-                        timestamps: ['10%', '30%', '60%', '90%'],
-                        folder: folderName,
-                        size: '160x?',
-                        filename: `${video_key}%03d`,
-                        fileExtension: 'png'
-                    })
+                    .takeScreenshots({
+                        timemarks: ['1', '3', '6', '9'],
+                        count: 3
+                    }, folderName)
                     .on('start', (command) => {
+                        console.log(folderName)
                         //console.log('Command:', command);
                     })
-                    .on('error', (error) => reject(error))
-                    .on('end', () => resolve())
+                    .on('error', (error) => console.log(error))
+                    .on('end', () => {
+                        console.log("thumbnails created")
+                        resolve()
+                    })
                     .run()
             })
         }
 
         async function compress () {
-            const outputPath = path.join(__dirname, '/../public/videos', `${video_key}.mp4`)
+            const outputPath = path.join(__dirname, '/../public/videos/', `${video_key}/` , `${video_key}.mp4`)
             const inputMetadata = await metadata(videoPath)
             await command(videoPath, outputPath)
         }
@@ -140,7 +140,7 @@ router.post('/upload', upload, async (req, res) => {
                 title: file.originalname,
                 description: "description",
                 duration: formatDuration(),
-                url_video: videoPath
+                url_video: `videos/${video_key}/${video_key}.mp4`
             }
 
         // Validate the user_id field

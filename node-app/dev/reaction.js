@@ -39,21 +39,19 @@ router.post('/new', async function (req, res) {
     try {
         await queryDB(`INSERT INTO reaction SET ?`, {
             user_id: req.body.user_id,
-            date: new Date(),
             video_id: req.body.video_id,
             reaction_type_id: req.body.reaction_type_id
         })
         await updatePopularity(req.body.video_id);
         return res.status(201).send('Reaction saved!');
     } catch (err) {
-        return res.status(404).json({success: false, error: err, message: 'Verify video_id!'});
+        return res.status(400).json({success: false, error: err, message: err});
     }
 
 });
 
 //Delete reaction by user and video id´s
-
-router.post('/:video_id/:user_id/delete', async function (req, res) {
+router.delete('/:video_id/:user_id/delete', async function (req, res) {
     const {video_id, user_id} = req.params;
     const video = await queryDB("SELECT * FROM reaction WHERE video_id = ? AND user_id = ?", [video_id,user_id]);
     if (video.length === 0) {
@@ -63,5 +61,25 @@ router.post('/:video_id/:user_id/delete', async function (req, res) {
     return res.status(200).send('reaction removed!');
 
 });
+//check if user has liked the post
+router.get('/like/:video_id/:user_id', async function (req, res) {
+    const {video_id, user_id} = req.params;
+    const video = await queryDB("SELECT * FROM reaction WHERE video_id = ? AND user_id = ? AND reaction_type_id = 1", [video_id, user_id]);
+    if (video.length === 0) {
+        return res.status(404).send({ liked: false });
+    }
+    return res.status(200).send({ liked: true });
+});
+
+//check if user has disliked the post
+router.get('/dislike/:video_id/:user_id', async function (req, res) {
+    const {video_id, user_id} = req.params;
+    const video = await queryDB("SELECT * FROM reaction WHERE video_id = ? AND user_id = ? AND reaction_type_id = 2", [video_id, user_id]);
+    if (video.length === 0) {
+        return res.status(404).send({ liked: false });
+    }
+    return res.status(200).send({ liked: true });
+});
+
 
 module.exports = router;
