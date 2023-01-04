@@ -61,16 +61,34 @@ router.delete('/:video_id/:user_id/delete', async function (req, res) {
     return res.status(200).send('reaction removed!');
 
 });
+
+//Delete reaction by user and video id´s
+router.delete('/:video_id/:user_id/delete', async function (req, res) {
+    try {
+        const video_id = req.params.video_id;
+        const user_id = req.params.user_id;
+        const deleteReaction = await queryDB(`DELETE FROM reaction where video_id = ? AND user_id = ?`, [video_id, user_id]);
+        res.status(200).json({success: true, deleteReaction});
+    } catch (err) {
+        return res.status(404).json({success: false, error: err, message: '[ERROR]'});
+    }
+});
 //check if user has liked the post
 router.get('/like/:video_id/:user_id', async function (req, res) {
-    const {video_id, user_id} = req.params;
-    const video = await queryDB("SELECT * FROM reaction WHERE video_id = ? AND user_id = ? AND reaction_type_id = 1", [video_id, user_id]);
-    if (video.length === 0) {
-        return res.status(404).send({ liked: false });
+    try {
+        const video_id = req.params.video_id;
+        const user_id = req.params.user_id;
+        const reaction_type_id = 1; //reaction_type.reaction_type_id.1 = Like
+        const liked = await queryDB(`SELECT * FROM reaction WHERE video_id = ? AND user_id = ? AND reaction_type_id = ?`, [video_id, user_id, reaction_type_id]);
+        if (liked.length > 0) {
+            res.status(200).json({success: true, liked: true});
+        } else {
+            res.status(200).json({success: true, liked: false});
+        }
+    } catch (err) {
+        return res.status(404).json({success: false, error: err, message: '[ERROR]'});
     }
-    return res.status(200).send({ liked: true });
 });
-
 //check if user has disliked the post
 router.get('/dislike/:video_id/:user_id', async function (req, res) {
     const {video_id, user_id} = req.params;

@@ -5,7 +5,6 @@ const router = express.Router();
 //Get all subscriptions from user
 
 //Get all avatar & usernames of followed channels
-
 const channelsSubs = `SELECT subscriptions.user_followed_id as 'channel', user.username, user.photo as 'avatar'
 FROM subscriptions
 LEFT JOIN user
