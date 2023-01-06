@@ -1,5 +1,6 @@
 const express = require("express");
 const {queryDB} = require("../connection.js");
+const {updateUserAchievements} = require("./utils/updateUserAchievements");
 const router = express.Router();
 
 const getAllAchievements = `SELECT * FROM achievements`;
@@ -33,24 +34,17 @@ router.get("/:id", async function (req, res) {
     }
     return res.status(200).json(userAchievements);
 });
-
+//todo eliminar endpoint
 //add achievement to user
 router.post("/:user_id/create", async function (req, res) {
     const {user_id} = req.params;
-    const {achievements_id} = req.body;
     const user = await queryDB(getUserById, [user_id]);
-
-    //verificar se user existe
 
     if (user.length === 0){
         return res.status(400).send("ERROR 400: This user doesn't exist");
     }
-    //todo: verificar se achievement existe
-    let newAchievement = await queryDB(addUserAchievements, {
-        user_id,
-        achievements_id
-    });
-    return res.status(200).json(newAchievement);
+     const user_has_newAchievement = await updateAchievements(user_id);
+    return res.status(200).json(user_has_newAchievement);
 });
 
 //post to create achievements

@@ -1,6 +1,7 @@
 const {updatePopularity} = require("./utils/popularity.js");
 const express = require("express");
 const {queryDB} = require("../connection.js");
+const {updateAchievements} = require("./utils/updateUserAchievements");
 const router = express.Router();
 
 const getReactionsById = `SELECT * FROM reaction WHERE video_id = ?`;
@@ -43,6 +44,7 @@ router.post('/new', async function (req, res) {
             reaction_type_id: req.body.reaction_type_id
         })
         await updatePopularity(req.body.video_id);
+        await updateAchievements(req.body.user_id);
         return res.status(201).send('Reaction saved!');
     } catch (err) {
         return res.status(400).json({success: false, error: err, message: err});

@@ -1,8 +1,24 @@
 const express = require("express");
 const {queryDB} = require("../connection.js");
+const {updateAchievements} = require("./utils/updateUserAchievements");
 const router = express.Router();
 
-//Get all subscriptions from user
+//Get all subscriptions
+
+const subs = `SELECT DISTINCT user.username as 'channel', user_followed_id as 'channel id',
+(SELECT COUNT(user_followed_id) FROM subscriptions WHERE user_followed_id = user_id) as 'subscriptions'
+FROM subscriptions
+JOIN user ON subscriptions.user_followed_id = user.user_id`;
+
+router.get('/', async function (req, res) {
+    try {
+        const subscriptions = await queryDB(subs);
+        return res.status(200).json(subscriptions);
+    } catch (err) {
+        return res.status(404).json({success: false, error: err, message: '[ERROR]'});
+    }
+});
+
 
 //Get all avatar & usernames of followed channels
 const channelsSubs = `SELECT subscriptions.user_followed_id as 'channel', user.username, user.photo as 'avatar'
@@ -41,18 +57,21 @@ router.get('/:user_following_id/:user_followed_id', async function (req, res) {
 });
 
 //Add Follower
+
 router.post('/add', async function (req, res) {
     try {
         const new_subs = await queryDB(`INSERT INTO subscriptions SET ?`, {
             user_following_id: req.body.user_following_id,
             user_followed_id: req.body.user_followed_id,
-            date: new Date()
-        })
+            date: new Date(),
+        });
+        await updateAchievements(req.body.user_following_id, req.body.user_followed_id);
         res.status(200).json({success: true, new_subs});
     } catch (err) {
         return res.status(404).json({success: false, error: err, message: '[ERROR]'});
     }
-})
+});
+
 
 //delete follower
 router.delete('/delete/:user_following_id/:user_followed_id', async function (req, res) {

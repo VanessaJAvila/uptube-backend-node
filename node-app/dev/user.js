@@ -10,6 +10,7 @@ const bcrypt = require('bcrypt');
 const {sendMail} = require("./email");
 const multer = require("multer");
 const path = require("path");
+const {updateAchievements} = require("./utils/updateUserAchievements");
 
 
 const transporter = mail.createTransport({
@@ -200,9 +201,12 @@ router.post('/passwordrecovery', async function (req, res) {
     // res.status(200).json({token,time_token,receiver_email,mailOptions});
 })
 
+//getAll users
 
-//getAllusers
-let getAllUsers = `SELECT * FROM user`;
+let getAllUsers = `SELECT DISTINCT user_id, username,name,email,bio, photo,header, birthday,
+(SELECT COUNT(user_followed_id) FROM subscriptions WHERE user_followed_id = user_id) as 'subscriptions'
+FROM subscriptions
+JOIN user ON subscriptions.user_followed_id = user.user_id`;
 router.get("/", async function (req, res) {
     let users = await queryDB(getAllUsers);
     res.json(users);
@@ -398,6 +402,7 @@ router.get("/:id/comments", async function (req, res) {
     let userComments = await queryDB(getUserComments, [id]);
     if (userComments.length === 0) {
         res.status(404).send("This user has no comments");
+        await updateAchievements(id);
         return;
     }
     //todo: if user doesnt exist -> error
@@ -423,6 +428,19 @@ router.get('/stats/:user_id', async function (req, res) {
     }
 });
 
+// Get  channels/videos views //todo verificar este endpoint/query para obter info para os channel cards
+
+router.get('/stats', async function (req, res) {
+    try {
+        const report = await queryDB(`SELECT user.user_id,username,thumbnail,title,
+        (SELECT COUNT(user_id) FROM views ) as 'views'
+        FROM user, video
+        where user.user_id =video.video_id`);
+        res.status(200).json({sucess: true, report});
+    } catch (err) {
+        return res.status(404).json({success: false, error: err, message: '[ERROR]'});
+    }
+});
 
 // Get Notifications by receiver_id
 
