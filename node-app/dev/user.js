@@ -288,7 +288,7 @@ router.post("/:user_id/edit/upload/avatar", upload.single('photo'), (req, res) =
         console.log("No file upload");
     } else {
         console.log(req.file, "REQ file dentro upload");
-        let imgsrc = 'http://localhost:5000/avatar/' + req.file.filename;
+        let imgsrc = 'http://localhost:3001/avatar/' + req.file.filename;
         console.log(imgsrc, "img src");
         let insertData = queryDB("UPDATE user SET ?  WHERE user_id = ?", [{
             photo: imgsrc
@@ -305,7 +305,7 @@ router.post("/:user_id/edit/upload/header", upl.single('photo'), (req, res) => {
         console.log("No file upload");
     } else {
         console.log(req.file, "REQ file dentro upload");
-        let imgsrc = 'http://localhost:5000/header/' + req.file.filename;
+        let imgsrc = 'http://localhost:3001/header/' + req.file.filename;
         console.log(imgsrc, "img src");
         let insertData = queryDB("UPDATE user SET ?  WHERE user_id = ?", [{
             header: imgsrc
