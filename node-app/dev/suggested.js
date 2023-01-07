@@ -18,7 +18,9 @@ GROUP BY video_id;`;
 
 const videoTags = `SELECT name as 'tags' FROM video_has_tags LEFT JOIN tags on video_has_tags.tag_id=tags.tag_id where video_id=?`
 
-const tagsFromVideosWatchedUser = `SELECT user_id,  CONCAT('["', GROUP_CONCAT(DISTINCT tags.name SEPARATOR '", "'), '"]') as 'tags' FROM views LEFT JOIN video_has_tags on views.video_id=video_has_tags.video_id LEFT JOIN tags on video_has_tags.tag_id=tags.tag_id WHERE user_id=?`
+const tagsFromVideosWatchedUser = `SELECT user_id,  CONCAT('["', GROUP_CONCAT(DISTINCT tags.name SEPARATOR '", "'),
+ '"]') as 'tags' FROM views LEFT JOIN video_has_tags on views.video_id=video_has_tags.video_id 
+ LEFT JOIN tags on video_has_tags.tag_id=tags.tag_id WHERE user_id=?`
 router.get("/tags/:user_id", async function (req, res) {
     const {user_id} = req.params;
     let viewedTags = await queryDB(tagsFromVideosWatchedUser, [user_id]);
@@ -56,6 +58,31 @@ LIMIT 50;`);
 
     shuffleArray(popularVideos)
     return res.status(200).json(popularVideos);
+});
+
+// Suggested channels
+router.get("/topchannels", async function (req, res) {
+    let suggestedChannels = await queryDB(`SELECT user.user_id,
+       MAX(video.popularity) as 'max_popularity',
+       COUNT(video.video_id) as 'num_videos',
+       SUM((SELECT count(user_id) FROM reaction WHERE reaction_type_id=1 and video_id=video.video_id)) as 'total_likes',
+       SUM((SELECT count(comment_id) FROM comments WHERE video_id=video.video_id)) as 'total_comments',
+       SUM((SELECT count(view_id) FROM views WHERE video_id=video.video_id)) as 'total_views',
+       (SELECT user.username FROM user WHERE user_id=video.user_id) as 'Channel',
+       (SELECT user.photo FROM user WHERE user_id=video.user_id) as 'photo',
+       (SELECT user.bio FROM user WHERE user_id=video.user_id) as 'bio'
+FROM user
+LEFT JOIN video ON video.user_id = user.user_id
+GROUP BY user.user_id
+ORDER BY user_id
+LIMIT 50`);
+
+    if (suggestedChannels.length === 0) {
+        res.status(202).send("There are no suggestions");
+        return;
+    }
+    shuffleArray(suggestedChannels)
+    return res.status(200).json(suggestedChannels);
 });
 
 
