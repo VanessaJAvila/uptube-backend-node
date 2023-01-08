@@ -288,6 +288,23 @@ router.get("/:id", async function (req, res) {
     }
 });
 
+//get videos of an user_id
+
+router.get("/user/:user_id", async function (req, res) {
+    const {user_id} = req.params;
+    try {
+        let video = await queryDB(`SELECT * FROM Video where user_id = ?`, [user_id]);
+        if (video.length === 0) {
+            res.status(204).send("There is no videos of this user");
+            return;
+        }
+        return res.status(200).json(video);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send("ERROR 500: Internal Server Error");
+    }
+});
+
 //get video by id for streaming page
 router.get("/stream/:id", async function (req, res) {
     const streamVideoById = `SELECT v.video_id, v.title, v.thumbnail, v.description, v.date, v.duration, v.url_video, u.username, v.user_id, u.photo, COUNT(views.view_id) as 'views',
