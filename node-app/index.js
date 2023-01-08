@@ -18,7 +18,6 @@ app.use((req, res, next) => {
     next();
 });
 
-const path = require('node:path');
 app.use(express.static('public'));
 
 
@@ -55,4 +54,4 @@ app.use("/history", require ("./dev/history.js"));
 app.use("/videotutorial", require ("./dev/assets/app.js"));
 app.use("/studio", require ("./dev/studio.js"));
 
-app.listen(5000);
+app.listen(3001);
