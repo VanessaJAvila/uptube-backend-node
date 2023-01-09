@@ -25,10 +25,11 @@ const postNewPlaylist = `INSERT INTO playlist SET ?`;
 const allUsers = `SELECT * FROM user WHERE user_id = ?`;
 
 
-const getPlaylistVideos = `SELECT playlist.playlist_id as playlist_id, playlist.title as playlistTitle, video.video_id as video_id, video.title as videoTitle, video.url_video as videoUrl, video.thumbnail, playlist.creator_id
-FROM playlist, playlist_has_videos,video
+const getPlaylistVideos = `SELECT playlist.playlist_id as playlist_id, playlist.title as playlistTitle, video.video_id as video_id, video.title as videoTitle, video.duration, video.url_video as videoUrl, video.thumbnail, playlist.creator_id, user.username as videoCreator
+FROM playlist, playlist_has_videos,video,user
 WHERE playlist.playlist_id=playlist_has_videos.playlist_id
 AND video.video_id=playlist_has_videos.video_id
+AND video.user_id=user.user_id
 AND playlist.playlist_id = ?
 ORDER BY playlist.playlist_id`;
 const getPlaylistByGuestId = `SELECT * FROM playlist_has_invitees WHERE invited_id = ?`;
