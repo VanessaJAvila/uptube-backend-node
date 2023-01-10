@@ -3,6 +3,44 @@ const {queryDB} = require("../connection.js");
 const {updateAchievements} = require("./utils/updateUserAchievements");
 const router = express.Router();
 
+
+// user add subscription of a channel
+router.post('/follow/:user_followed_id/', async function (req, res) {
+    const user_id = req.user.user_id;
+    if (!user_id) {
+        res.json({success: false, message: 'no user logged'});
+        return;
+
+    }
+    const user_followed_id = req.params.user_followed_id;
+    if (!user_followed_id){
+        res.json({success: false, message: 'not getting user_followed_id'});
+        return;
+    }
+    if (user_id === user_followed_id) {
+        res.json({success: false, message: "user cannot follow it´s own channel"});
+        return;
+    }
+
+    const subscription = await queryDB('SELECT * FROM subscriptions WHERE user_followed_id = ? AND user_following_id = ? LIMIT 1', [user_followed_id, user_id]);
+    console.log("subscription", subscription)
+    if (subscription[0]) {
+        await queryDB(`DELETE FROM subscriptions WHERE subscriptions.user_followed_id = ? AND subscriptions.user_following_id = ?`, [user_followed_id, user_id]);
+        res.json({success: true, message: `${user_id} unfollowed ${user_followed_id}`, subscribed: false});
+        console.log(res)
+        return;
+    }
+
+    const createSubscription = await queryDB("INSERT INTO subscriptions SET ?", {
+        user_followed_id: req.params.user_followed_id,
+        user_following_id: req.user.user_id
+    });
+    const newSubscription = await queryDB('SELECT * FROM subscriptions WHERE user_followed_id = ? AND user_following_id = ?', [createSubscription.user_followed_id, createSubscription.user_id]);
+    res.json({success: true, new_subscription: newSubscription[0], message: `${user_id} followed ${user_followed_id}`, subscribed: true});
+})
+
+
+
 //Get all subscriptions
 
 const subs = `SELECT DISTINCT user.username as 'channel', user_followed_id as 'channel id',

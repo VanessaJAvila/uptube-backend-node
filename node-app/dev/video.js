@@ -10,7 +10,7 @@ video.url_video as 'url', user.username, user.photo as 'user photo',  COUNT(view
  COUNT(CASE reaction.reaction_type_id WHEN '1' then 1 else null end) as 'likes', COUNT(CASE reaction.reaction_type_id WHEN '2' 
  then 1 else null end) as 'dislikes', 
     (SELECT GROUP_CONCAT(DISTINCT tags.name SEPARATOR ', ')) as 'tags',
-    (SELECT playlist.title from playlist WHERE playlist_has_videos.playlist_id=playlist.playlist_id) as 'playlist'
+    (SELECT playlist.title from playlist WHERE playlist_has_videos.playlist_id=playlist.playlis t_id) as 'playlist'
 FROM video 
 LEFT JOIN user on video.user_id=user.user_id
 LEFT JOIN views on video.video_id=views.video_id
@@ -42,9 +42,11 @@ GROUP BY video_id`;
 
 const getAllVideos = `SELECT * FROM video ORDER BY popularity DESC`;
 const getVideoById = `SELECT * FROM video WHERE video_id = ?`;
-const getCommentsByVideoID = `SELECT * FROM comments WHERE video_id = ?`;
+const getCommentsByVideoID = `SELECT * FROM comments LEFT JOIN user on comments.sender_id=user.user_id WHERE video_id = ?`;
 const getCommentByID = `SELECT * FROM comments WHERE comment_id = ?`;
 const deleteCommentById = `DELETE FROM comments WHERE comment_id = ?`;
+
+
 
 //getAllVideos by popularity desc
 router.get("/", async function (req, res) {
@@ -85,7 +87,6 @@ router.get("/search", async function (req, res) {
 
 router.get("/search/tag", async function (req, res) {
     console.log(req.query.search)
-    let videos = await queryDB(getAllVideos);
     try {
         let search_tag_res = await queryDB(getTag, [req.query.search]);
         if (search_tag_res.length === 0) {
@@ -98,6 +99,27 @@ router.get("/search/tag", async function (req, res) {
     }
 });
 
+//user creator by video_id
+router.get("/:video_id/user", async function (req, res) {
+    const {video_id} = req.params;
+    if (!video_id) {
+        return res.status(400).send("ERROR 400: No video_id provided in request");
+    }
+    try {
+        let user = await queryDB(`SELECT user_id FROM video WHERE video_id = ?`, [video_id]);
+        let video = await queryDB(getVideoById, [video_id]);
+        if (video.length === 0) {
+            return res.status(400).send("ERROR 400: There is no video with this ID");
+        }
+        if (user.length === 0) {
+            return res.status(400).send("ERROR 400: This video has no user");
+        }
+        return res.status(200).json(user);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send("ERROR 500: Internal Server Error");
+    }
+});
 
 //get comments by video id
 router.get("/:video_id/comments", async function (req, res) {
@@ -122,27 +144,29 @@ router.get("/:video_id/comments", async function (req, res) {
 });
 
 
-//POST request to create new comment
-router.post('/:video_id/comments/create', async function (req, res) {
-    const {video_id} = req.params;
-    const {comment} = req.body;
-    const {sender_id} = req.body;
-    try {
-        const postNewComment = `INSERT INTO comments (timestamp, comment, sender_id, video_id) VALUES ?`;
 
-        let data = await queryDB(postNewComment, {
-            timestamp: new Date(),
-            comment,
-            sender_id,
-            video_id
-        });
-        await updatePopularity(video_id);
-        await updateAchievements(sender_id);
-        return res.status(200).json({success: true, comment_id: data.insertId});
-    } catch (error) {
-        console.error(error);
-        return res.status(500).send("ERROR 500: Internal Server Error");
+//POST request to create new comment - Working
+router.post('/:video_id/comment/new', async function (req, res) {
+
+    console.log("req.user.user_id", req.user)
+    const sender_id = req.user.user_id;
+
+    if (!sender_id) {
+        res.json({success: false, message: 'user is not logged in'});
+        return;
     }
+    const comment = req.body.comment;
+    if (comment === '') {
+        res.json({success: false, message: 'comment is empty'});
+        return;
+    }
+    const createComment = await queryDB("INSERT INTO comments SET ?", {
+        comment: comment,
+        sender_id: sender_id,
+        video_id: req.params.video_id
+    });
+    let newComment = await queryDB("SELECT * FROM comments WHERE comment_id = ?", [createComment.insertId]);
+    res.json({success: true, new_comment: newComment[0]});
 });
 
 //POST request to create view
@@ -319,7 +343,7 @@ WHERE v.video_id = ?`;
         }
         return res.status(200).json(video);
     } catch (error) {
-        console.error(error);
+        console.error("ERROR !!", error);
         return res.status(500).send("ERROR 500: Internal Server Error");
     }
 });
