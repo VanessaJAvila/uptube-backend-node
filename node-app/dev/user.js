@@ -224,6 +224,18 @@ router.get("/:user_id", async function (req, res) {
     res.json(user);
 });
 
+//get 1 channel by id
+
+router.get("/channel/:user_id", async function (req, res) {
+    let user = await queryDB('SELECT * FROM user WHERE user_id =?', [req.params.user_id]);
+    if (user.length === 0) {
+        res.status(404).send("não existe este user id");
+        return;
+    }
+    res.json(user);
+});
+
+
 
 //editar 1 user
 
@@ -444,21 +456,41 @@ router.get('/stats', async function (req, res) {
 
 // Get Notifications by receiver_id
 
-const getNotificationsByUser = `SELECT * FROM notifications WHERE receiver_id = ?`;
+const getNotificationsByUser = `SELECT notifications.notification_id,user.username as 'sender', receiver_id, notifications_type.type as 'notification',comment,video_id,seen
+FROM notifications
+LEFT JOIN notifications_type ON  notifications.type_id= notifications_type.type_id 
+LEFT JOIN comments ON  notifications.comment_id= comments.comment_id
+LEFT JOIN user ON  notifications.sender_id= user.user_id
+WHERE receiver_id = ? `;
+
+const getUnseenNot =`SELECT notifications.notification_id,user.username as 'sender', receiver_id, notifications_type.type as 'notification',comment,video_id,seen
+FROM notifications
+LEFT JOIN notifications_type ON  notifications.type_id= notifications_type.type_id
+LEFT JOIN comments ON  notifications.comment_id= comments.comment_id
+LEFT JOIN user ON  notifications.sender_id= user.user_id
+WHERE receiver_id = ? and seen = 0`
 
 router.get("/:receiver_id/notifications", async function (req, res) {
-    const {receiver_id} = req.params;
+    const {receiver_id} = req.params
     let notifications = await queryDB(getNotificationsByUser, [receiver_id]);
-    if (notifications.length === 0) {
-        res.status(404).send("There are no notifications");
+    let unseenNot = await queryDB(getUnseenNot, [receiver_id]);
+
+    if (notifications.length <= 0) {
+        res.status(200).send("There are no notifications");
         return;
     }
-    return res.status(200).json(notifications);
+
+    if (unseenNot.length <= 0) {
+        res.status(200).send("There are no new notifications");
+        return;
+    }
+
+    res.status(200).json({ unseenNot: unseenNot, notifications: notifications});
 });
 
 //Add notification
 
-router.post('/:receiver_id/notification', async function (req, res) {
+router.post('/:receiver_id/new/notification', async function (req, res) {
     try {
         const new_not = await queryDB(`INSERT INTO notifications SET ?`, {
             sender_id: req.body.sender_id,
