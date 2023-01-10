@@ -89,10 +89,7 @@ router.get("/search/tag", async function (req, res) {
     try {
         let search_tag_res = await queryDB(getTag, [req.query.search]);
         if (search_tag_res.length === 0) {
-            return res.status(200).send("There are no results");
-        }
-        if (req.query.search === " ") {
-            return res.json(videos);
+            return res.json({sucess:false, message: search_tag_res});
         }
         return res.json(search_tag_res);
     } catch (error) {
@@ -327,7 +324,7 @@ WHERE v.video_id = ?`;
     }
 });
 
-//get video data by id
+//get video data by id and tags
 router.get("/:id/tags", async function (req, res) {
     const {id} = req.params;
     try {
