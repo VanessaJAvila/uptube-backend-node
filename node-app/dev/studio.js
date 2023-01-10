@@ -24,16 +24,6 @@ const checkIfIDisValid = () => {
 }
 checkIfIDisValid();
 
-const folderName = path.join(__dirname, '../public/videos', `${video_key}`);
-
-fs.mkdir(folderName, { recursive: true }, (error) => {
-    if (error) {
-        console.error(error);
-    } else {
-        console.log(`Folder ${folderName} created`);
-    }
-});
-
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'public/videos/'+video_key+'/')
@@ -69,6 +59,16 @@ const upload = multer({
 }).single('file')
 
 router.post('/upload', upload, async (req, res) => {
+    const folderName = path.join(__dirname, '../public/videos', `${video_key}`);
+
+    fs.mkdir(folderName, { recursive: true }, (error) => {
+        if (error) {
+            console.error(error);
+        } else {
+            console.log(`Folder ${folderName} created`);
+        }
+    });
+
         const file = req.file;
         //console.log(req.file)
         try {
