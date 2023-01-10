@@ -6,6 +6,106 @@ const router = express.Router();
 
 const getReactionsById = `SELECT * FROM reaction WHERE video_id = ?`;
 
+// add reaction like to video
+router.post('/:video_id/like', async function (req, res) {
+    const video_id = req.params.video_id;
+    const user_id = req.user.user_id;
+
+    if (!user_id) {
+        res.json({success: false, message: 'no user logged in'});
+        return;
+    }
+    const videoExists = await queryDB('SELECT * FROM video WHERE video_id = ?', [video_id]);
+    if (videoExists.length === 0){
+        res.json({success: false, message: 'video does not exist'});
+        return;
+    }
+    const user_id_video = await queryDB('SELECT user_id FROM video WHERE video_id = ?', [video_id]);
+    if (user_id === user_id_video[0].user_id) {
+        res.json({success: false, message: "user can´t like is own video"});
+        return;
+    }
+
+    const reaction = await queryDB('SELECT * FROM reaction WHERE user_id = ? AND video_id = ? LIMIT 1', [user_id, video_id]);
+
+    // if already there is a reaction
+    if (reaction[0]) {
+        // if already like
+        if (reaction[0].reaction_type_id === 1) {
+            await queryDB(`DELETE FROM reaction WHERE reaction.user_id = ? AND reaction.video_id = ?`, [user_id, video_id])
+            res.json({success: true, message: 'like was deleted'});
+            return;
+        }
+
+        // if dislike, update to like
+        if (reaction[0].reaction_type_id === 2) {
+            await queryDB("UPDATE reaction SET reaction_type_id = 1 WHERE reaction.user_id = ? AND reaction.video_id = ?", [user_id, video_id]);
+            const updated_reaction = await queryDB('SELECT * FROM reaction WHERE user_id = ? AND video_id =?', [user_id, video_id]);
+            res.json({success: true, updated_reaction: updated_reaction[0], message: 'your dislike is now a like'});
+            return;
+        }
+    }
+
+    // if no reaction yet, insert one
+    const createReaction = await queryDB("INSERT INTO reaction SET ?", {
+        user_id: user_id,
+        video_id: video_id,
+        reaction_type_id: 1
+    });
+    const newReaction = await queryDB('SELECT * FROM reaction WHERE user_id = ? AND video_id =?', [user_id, video_id]);
+    res.json({success: true, new_reaction: newReaction[0]});
+});
+
+// add reaction dislike to video
+router.post('/:video_id/dislike', async function (req, res) {
+    const video_id = req.params.video_id;
+    const user_id = req.user.user_id;
+    console.log(video_id)
+
+    if (!user_id) {
+        res.json({success: false, message: 'no user logged in'});
+        return;
+    }
+    const videoExists = await queryDB('SELECT * FROM video WHERE video_id = ?', [video_id]);
+    if (videoExists.length === 0){
+        res.json({success: false, message: 'video does not exist'});
+        return;
+    }
+    const user_id_video = await queryDB('SELECT user_id FROM video WHERE video_id = ?', [video_id]);
+    if (user_id === user_id_video[0].user_id) {
+        res.json({success: false, message: "user can´t like is own video"});
+        return;
+    }
+
+    const reaction = await queryDB('SELECT * FROM reaction WHERE user_id = ? AND video_id = ? LIMIT 1', [user_id, video_id]);
+
+    // if already there is a reaction
+    if (reaction[0]) {
+        // if already dislike
+        if (reaction[0].reaction_type_id === 2) {
+            await queryDB(`DELETE FROM reaction WHERE reaction.user_id = ? AND reaction.video_id = ?`, [user_id, video_id])
+            res.json({success: true, message: 'dislike removed'});
+            return;
+        }
+
+        // if like, update to dislike
+        if (reaction[0].reaction_type_id === 1) {
+            await queryDB("UPDATE reaction SET reaction_type_id = 2 WHERE reaction.user_id = ? AND reaction.video_id = ?", [user_id, video_id]);
+            const updated_reaction = await queryDB('SELECT * FROM reaction WHERE user_id = ? AND video_id =?', [user_id, video_id]);
+            res.json({success: true, updated_reaction: updated_reaction[0], message: 'your like is now a dislike'});
+            return;
+        }
+    }
+    // if no reaction yet, insert one
+    const createReaction = await queryDB("INSERT INTO reaction SET ?", {
+        user_id: user_id,
+        video_id: video_id,
+        reaction_type_id: 2
+    });
+    const newReaction = await queryDB('SELECT * FROM reaction WHERE user_id = ? AND video_id =?', [user_id, video_id]);
+    res.json({success: true, new_reaction: newReaction[0]});
+});
+
 //getAllReactions by video id
 
 router.get("/:video_id", async function (req, res) {
@@ -34,9 +134,13 @@ router.get('/counter/:video_id', async function (req, res) {
     }
 });
 
-// Add reaction
-//todo: bug: não é possivel acrescentar reações do user 2 e 3
 router.post('/new', async function (req, res) {
+    const sender_id = req.user.user_id;
+    const comment = req.body.comment;
+    if (!sender_id) {
+        res.json({success: false, message: 'user is not logged in'});
+        return;
+    }
     try {
         await queryDB(`INSERT INTO reaction SET ?`, {
             user_id: req.body.user_id,
