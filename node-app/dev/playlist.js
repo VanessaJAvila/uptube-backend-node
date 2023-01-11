@@ -198,15 +198,14 @@ router.get("/guest/:invited_id", async function (req, res) {
 
 
 router.get("/getInvitedEmail/:email", async function (req, res) {
-    const {email} = req.params;
-    const userIdByEmail = await queryDB(getUserByEmail, [email]);
 
-    if (!userIdByEmail) {
-        res.status(400).send("this user is not registered");
-        return;
+    try{
+        const {email} = req.params;
+        const userIdByEmail = await queryDB(getUserByEmail, [email]);
+        return res.status(200).json(userIdByEmail);
+    }catch(e){
+        return  res.status(404).json({success: false, message: 'Já existe este guest na playlist!', error:e});
     }
-
-    return res.status(200).json(userIdByEmail);
 });
 
 
@@ -296,10 +295,8 @@ router.get("/user/:id", async function (req, res) {
 
 
 router.post('/addguestplaylist', async function (req, res) {
-
+    const {playlist_id,invited_id,email} = req.body;
    try  {
-       const {playlist_id,invited_id,email} = req.body;
-
        let data = await queryDB(postGPlaylist, {
            playlist_id,
            invited_id
@@ -316,7 +313,7 @@ router.post('/addguestplaylist', async function (req, res) {
            from: 'uptubeproject@gmail.com',
            to: email,
            subject: 'Added to Playlist',
-           text: 'You where invited to edit this playlist, please click the link to acess it, http://localhost:3000/playlist/'+ playlist_id
+           text: 'You were invited to edit this playlist, please click the link to acess it, http://localhost:3000/playlist/'+ playlist_id
        };
 
        transporter.sendMail(mailOptions, function (error, response) {
@@ -330,7 +327,22 @@ router.post('/addguestplaylist', async function (req, res) {
        });
 
    } catch (err) {
-       return res.status(404).json({success: false, error: err, message: 'Já existe este guest na playlist!'});
+       const mailOptions = {
+           from: 'uptubeproject@gmail.com',
+           to: email,
+           subject: 'Added to Playlist',
+           text: 'You were invited to this playlist, please click the link to acess it, http://localhost:3000/playlist/'+ playlist_id
+       };
+
+       transporter.sendMail(mailOptions, function (error, response) {
+           if (error) {
+               console.log("error", error);
+               return res.status(500).json({message: '[ERROR SENDING EMAIL]'});
+           } else {
+               console.log("Here is the", response)
+               return res.status(200).json({success: true, message: 'Email enviado!'});
+           }
+       });
    }
 });
 
@@ -342,12 +354,7 @@ router.post('/addguestplaylist', async function (req, res) {
 
 router.post('/deletegfromp/', async function (req, res) {
     const {playlist_id,invited_id} = req.body;
-
-
-
     let data = await queryDB(deleteGfromPlaylist, [ playlist_id,invited_id]);
-
-
     return res.status(200).json({success: true});
 });
 
@@ -356,7 +363,6 @@ router.post('/deletegfromp/', async function (req, res) {
 router.post('/delete/', async function (req, res) {
     const {playlist_id,creator_id,user_id} = req.body;
 
-    //let creator_id = 2; //todo ir buscar ao user logado
     if (creator_id !== user_id) {
         return res.status(400).send("ERROR 400: You are not the owner of this playlist");
     }
