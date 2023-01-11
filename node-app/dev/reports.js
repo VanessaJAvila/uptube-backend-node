@@ -2,6 +2,30 @@ const express = require("express");
 const {queryDB} = require("../connection.js");
 const router = express.Router();
 
+
+
+//Report video
+router.post('/:video_id/new', async function (req, res) {
+    const {video_id} = req.params;
+    const {report_type_id, report_state, details, action, reporter_id} = req.body;
+    console.log(report_type_id, report_state, details, action, reporter_id, report_state)
+    try {
+        const new_report = await queryDB(`INSERT INTO reports SET ?`, {
+            report_type_id,
+            video_id,
+            details,
+            action,
+            reporter_id,
+            report_state
+        })
+        console.log("video_id: ", video_id, "report_type_id: ", report_type_id, "details: ",details, "reporter_id: ")
+        res.status(200).json({success: true, new_report});
+    } catch(err){
+        console.log(err)
+        return res.status(404).json({success: false, error: err, message: '[ERROR] Insert valid data'});
+    }
+});
+
 // Get Report by action type
 
 router.get('/action/:action', async function (req, res) {
@@ -47,27 +71,6 @@ router.post('/:report_id/update', async function (req, res) {
     await queryDB(`UPDATE reports set state = ?, obs = ?, action = ? WHERE report_id = ?`,
         [state,obs,action,report_id])
     return res.status(200).send('Report updated!');
-});
-
-//Report comment or video
-
-router.post('/new', async function (req, res) {
-    const {report_type_id, comment_id, video_id, state, obs, action, reporter_id} = req.body;
-    try {
-        const new_report = await queryDB(`INSERT INTO reports SET ?`, {
-            report_type_id,
-            comment_id,
-            video_id,
-            timestamp_report: new Date(),
-            state,
-            obs,
-            action,
-            reporter_id
-        })
-        res.status(200).json({success: true, new_report});
-    } catch(err){
-        return res.status(404).json({success: false, error: err, message: '[ERROR] Insert valid data'});
-    }
 });
 
 module.exports = router;

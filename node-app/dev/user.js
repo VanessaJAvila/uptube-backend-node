@@ -474,12 +474,11 @@ router.get("/:receiver_id/notifications", async function (req, res) {
     let unseenNot = await queryDB(getUnseenNot, [receiver_id]);
 
     if (notifications.length <= 0) {
-        res.status(200).send("There are no notifications");
+        res.status(200).json({ unseenNot: unseenNot, notifications: notifications});
         return;
     }
-
     if (unseenNot.length <= 0) {
-        res.status(200).send("There are no new notifications");
+        res.status(200).json({ unseenNot: unseenNot, notifications: notifications});
         return;
     }
 
@@ -507,18 +506,19 @@ router.post('/:receiver_id/new/notification', async function (req, res) {
     }
 });
 
-// Delete notification by notification_id
+// Update notification by notification_id
 
-router.post('/:notification_id/delete', async function (req, res) {
+router.post('/:notification_id/update', async function (req, res) {
 
     const {notification_id} = req.params;
-    const nots = await queryDB("SELECT * FROM notifications WHERE notification_id = ?", [notification_id]);
-    if (nots.length === 0) {
-        return res.status(404).send('Notification not found!');
-    }
-    await queryDB(`DELETE FROM notifications WHERE notification_id = ?`, [notification_id])
-    return res.status(200).send('Notification deleted!');
-});
+    try {
+        const not = await queryDB("SELECT * FROM notifications WHERE notification_id = ?", [notification_id]);
+        if (not[0].seen === 0) {
+        const setViewed = await queryDB(`UPDATE notifications SET seen = 1 WHERE notification_id = ?`, [notification_id])
+        return res.status(200).send('State updated to viewed!');
+    }} catch (err) {
+        res.status(202).json({success: false, error: err, message: 'Verify data!'});
+}});
 
 
 // send mail to a user id with notification of subscription/ register and password recovery
