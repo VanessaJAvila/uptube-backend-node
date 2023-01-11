@@ -32,11 +32,11 @@ const authenticateUser = async (email, password, done) => {
 }
 passport.use(new LocalStrategy({usernameField: 'email'}, authenticateUser));
 passport.serializeUser((user, done) => {
-    console.log("serialize", user);
+    //console.log("serialize", user);
     done(null, {user_id: user.user_id})
 })
 passport.deserializeUser(async (user, done) => {
-    console.log("deserialize", user);
+    //console.log("deserialize", user);
     return done(null, await getUserById(user.user_id))
 })
 

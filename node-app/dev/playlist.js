@@ -17,14 +17,20 @@ const transporter = mail.createTransport({
 const getPlaylistById = `SELECT * FROM playlist WHERE playlist_id = ?`
 
 
-const usersGbyplaylistId = `SELECT user.name
+const usersGbyplaylistId = `SELECT user.name, user.user_id
 FROM playlist_has_invitees, user
 WHERE playlist_has_invitees.invited_id = user.user_id
 AND playlist_has_invitees.playlist_id = ?`;
 
 
-const getPlaylistsByMovie = 'SELECT playlist.playlist_id FROM video, playlist_has_videos, playlist WHERE video.video_id = playlist_has_videos.video_id AND playlist.playlist_id = playlist_has_videos.playlist_id AND video.video_id = ? AND playlist.creator_id = ? group by playlist_has_videos.playlist_id';
+const usersGbyplaylists = `SELECT user.name, user.user_id, playlist_has_invitees.playlist_id
+FROM playlist_has_invitees, user
+WHERE playlist_has_invitees.invited_id = user.user_id`;
 
+
+
+
+const getPlaylistsByMovie = 'SELECT playlist.playlist_id FROM video, playlist_has_videos, playlist WHERE video.video_id = playlist_has_videos.video_id AND playlist.playlist_id = playlist_has_videos.playlist_id AND video.video_id = ? AND playlist.creator_id = ? group by playlist_has_videos.playlist_id';
 
 
 const getPlaylistByUserId = `SELECT playlist.creator_id as creator_id, playlist.playlist_id as playlist_id, playlist.thumbnail as thumbnail, playlist.title as title, playlist.visibility as visibility, SEC_TO_TIME(SUM(TIME_TO_SEC( video.duration))) as duration, playlist.timestamp as timestamp
@@ -36,10 +42,9 @@ ON video.video_id=playlist_has_videos.video_id
 WHERE playlist.creator_id=?
 GROUP BY playlist.playlist_id`;
 
-const getAllGplaylists = `SELECT * FROM playlist_has_invitees`;
 
-
-const getPlaylistByGId = `SELECT playlist.creator_id as creator_id, playlist.playlist_id as playlist_id, playlist.thumbnail as thumbnail, playlist.title as title, playlist.visibility as visibility, SEC_TO_TIME(SUM(TIME_TO_SEC( video.duration))) as duration, playlist.timestamp as timestamp
+//TODO: join com o user para ir buscar o creator photo e name
+const getPlaylistByGId = `SELECT playlist.creator_id as creator_id, playlist.playlist_id as playlist_id, playlist.thumbnail as thumbnail, playlist.title as title, playlist.visibility as visibility, SEC_TO_TIME(SUM(TIME_TO_SEC( video.duration))) as duration, playlist.timestamp as timestamp, user.name, user.photo
 FROM playlist
 LEFT JOIN playlist_has_videos
 ON playlist.playlist_id = playlist_has_videos.playlist_id
@@ -47,6 +52,8 @@ LEFT JOIN video
 ON video.video_id=playlist_has_videos.video_id
 LEFT JOIN playlist_has_invitees
 on playlist.playlist_id = playlist_has_invitees.playlist_id
+LEFT JOIN user
+on user.user_id=playlist.creator_id
 WHERE playlist_has_invitees.invited_id = ?
 GROUP BY playlist.playlist_id`;
 
@@ -90,20 +97,36 @@ const postGPlaylist = `INSERT INTO playlist_has_invitees SET ?`;
 const addMusictoPlaylist = `INSERT INTO playlist_has_videos SET ?`;
 
 
-//get playlist by user id
+const deleteGfromPlaylist = `DELETE FROM playlist_has_invitees WHERE playlist_has_invitees.playlist_id = ? AND playlist_has_invitees.invited_id = ?`
 
 
 
+router.get("/guest/playlists", async function (req, res) {
 
-router.get('/ginplaylist/:playlist_id', async function (req, res) {
-    const {playlist_id} = req.params;
-    let movie = await queryDB(usersGbyplaylistId, [playlist_id]);
+    const id = req.user.user_id;
+    const userExists = await queryDB(allUsers, [id]);
+    const userPlaylist = await queryDB(getPlaylistByGId, [id]);
 
-    if (movie.length === 0) {
-        res.status(400).send([req.params,"ERROR 400: There is no Guests in playlist with this ID"]);
-        return;
+
+    if (userExists.length === 0) {
+        return res.status(400).send("ERROR 400: There is no user with this ID");
+
+    }
+    if (userPlaylist.length === 0) {
+        return res.status(400).send("ERROR 400: This user doesn't have any playlists");
+
     }
 
+    return res.status(200).json(userPlaylist);
+});
+
+
+router.get('/ginplaylist', async function (req, res) {
+    let movie = await queryDB(usersGbyplaylists);
+
+    if (movie.length === 0) {
+        return  res.status(400).send("ERROR 400: There is no playlists with guests");
+    }
 
     return res.status(200).json(movie);
 });
@@ -161,7 +184,7 @@ router.get("/guest/:invited_id", async function (req, res) {
 
 
     if (userExists.length === 0) {
-        res.status(400).send(invited_id);
+        res.status(400).send("ERROR 400:user not found");
         return;
     }
     if (guestUserPlaylist.length === 0) {
@@ -261,77 +284,72 @@ router.get("/user/:id", async function (req, res) {
     return res.status(200).json(userPlaylist);
 });
 
+/*
+   let confirmation=await queryDB(getAllGplaylists);
+    console.log(confirmation.includes(1), "COOOOOOOOOOOOOOOOOOOOOOOOOOOOOOONNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNFFFFFFFFFFIRMATION");
 
+    if(confirmation[0].playlist_id === playlist_id && confirmation[0].invited_id === invited_id){
+        return res.status(400).json({message: '[THIS USER IS ALREADY IN PLAYLIST]'})
+    }
+
+ */
 
 
 router.post('/addguestplaylist', async function (req, res) {
-    const {playlist_id,invited_id,email} = req.body;
 
-    let confirmation=await queryDB(getAllGplaylists);
-    console.log(confirmation[0].playlist_id, "COOOOOOOOOOOOOOOOOOOOOOOOOOOOOOONNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNFFFFFFFFFFIRMATION");
+   try  {
+       const {playlist_id,invited_id,email} = req.body;
 
-    confirmation.map((con)=>{
-        console.log(con.playlist_id,con.invited_id)
-        if (con.playlist_id === playlist_id && con.invited_id === invited_id) {
-            return res.status(400).json({message: '[THIS USER IS ALREADY IN PLAYLIST]'})
-        }
-    })
+       let data = await queryDB(postGPlaylist, {
+           playlist_id,
+           invited_id
+       });
 
+       let guestadded = await queryDB(usersGbyplaylistId,{playlist_id})
 
+       if (!data) {
+           res.status(400).send("ERROR 400: This user is already a guest in the playlist backend");
+           return;
+       }
 
-    let data = await queryDB(postGPlaylist, {
-        playlist_id,
-        invited_id
-    });
+       const mailOptions = {
+           from: 'uptubeproject@gmail.com',
+           to: email,
+           subject: 'Added to Playlist',
+           text: 'You where invited to edit this playlist, please click the link to acess it, http://localhost:3000/playlist/'+ playlist_id
+       };
 
-    if (!data) {
-        res.status(400).send("ERROR 400: This user is already a guest in the playlist");
-        return;
-    }
+       transporter.sendMail(mailOptions, function (error, response) {
+           if (error) {
+               console.log("error", error);
+               return res.status(500).json({message: '[ERROR SENDING EMAIL]'});
+           } else {
+               console.log("Here is the", response)
+               return res.status(200).json({guest: guestadded});
+           }
+       });
 
-    const mailOptions = {
-        from: 'uptubeproject@gmail.com',
-        to: email,
-        subject: 'Added to Playlist',
-        text: 'You where invited to edit this playlist, please click the link to acess it, http://localhost:3000/playlist/'+ playlist_id
-    };
-
-    transporter.sendMail(mailOptions, function (error, response) {
-        if (error) {
-            console.log("error", error);
-            return res.status(500).json({message: '[ERROR SENDING EMAIL]'});
-        } else {
-            console.log("Here is the", response)
-            return res.status(200).json({message: 'Invite email sent successfully'});
-        }
-    });
-});
-
-
-router.get("/guest/:id/playlists", async function (req, res) {
-    const {id} = req.params;
-    const userExists = await queryDB(allUsers, [id]);
-    const userPlaylist = await queryDB(getPlaylistByGId, [id]);
-
-    if (userExists.length === 0) {
-        res.status(400).send("ERROR 400: There is no user with this ID");
-        return;
-    }
-    if (userPlaylist.length === 0) {
-        res.status(400).send("ERROR 400: This user doesn't have any playlists");
-        return;
-    }
-
-    return res.status(200).json(userPlaylist);
+   } catch (err) {
+       return res.status(404).json({success: false, error: err, message: 'Já existe este guest na playlist!'});
+   }
 });
 
 
 
 
 
-//Listar playlists de um user(guest)
-//todo: join detalhes da playlist do guest
 
+
+router.post('/deletegfromp/', async function (req, res) {
+    const {playlist_id,invited_id} = req.body;
+
+
+
+    let data = await queryDB(deleteGfromPlaylist, [ playlist_id,invited_id]);
+
+
+    return res.status(200).json({success: true});
+});
 
 
 

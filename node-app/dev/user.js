@@ -93,7 +93,7 @@ router.get("/sessao", async function (req, res) {
     }
 
     res.json({user: req.user});
-    console.log(req.user);
+    //console.log(req.user);
 });
 
 
