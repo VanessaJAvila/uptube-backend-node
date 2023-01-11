@@ -508,17 +508,20 @@ router.post('/:receiver_id/new/notification', async function (req, res) {
 
 // Update notification by notification_id
 
-router.post('/:notification_id/update', async function (req, res) {
+router.post('/readNotifications', async function (req, res) {
 
-    const {notification_id} = req.params;
     try {
-        const not = await queryDB("SELECT * FROM notifications WHERE notification_id = ?", [notification_id]);
-        if (not[0].seen === 0) {
-        const setViewed = await queryDB(`UPDATE notifications SET seen = 1 WHERE notification_id = ?`, [notification_id])
-        return res.status(200).send('State updated to viewed!');
-    }} catch (err) {
-        res.status(202).json({success: false, error: err, message: 'Verify data!'});
-}});
+        console.log("user", req.user);
+        const user_id = req.user.user_id;
+        await queryDB(`UPDATE notifications SET seen = 1 WHERE receiver_id = ?`, [user_id])
+        res.status(200).send('State updated to viewed!');
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({success: false, error: err, message: 'Verify data!'});
+    }
+});
+
+
 
 
 // send mail to a user id with notification of subscription/ register and password recovery
