@@ -68,7 +68,6 @@ router.post('/upload', upload, async (req, res) => {
             console.log(`Folder ${folderName} created`);
         }
     });
-
         const file = req.file;
         //console.log(req.file)
         try {

@@ -189,10 +189,8 @@ router.post('/passwordrecovery', async function (req, res) {
 
     transporter.sendMail(mailOptions, function (error, response) {
         if (error) {
-            console.log(error);
             return res.status(500).json({message: '[ERROR SENDING EMAIL]'});
         } else {
-            console.log("Here is the hahahah", response)
             return res.status(200).json({message: 'Email sent'});
         }
     });
