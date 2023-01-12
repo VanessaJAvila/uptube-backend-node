@@ -63,6 +63,9 @@ FROM user
 WHERE user.email = ?`;
 
 
+const getPlaylistsByuserid = `SELECT playlist.*, invited_id is not null as guest FROM playlist join playlist_has_videos on playlist.playlist_id = playlist_has_videos.playlist_id left JOIN playlist_has_invitees on playlist_has_invitees.playlist_id = playlist.playlist_id where (creator_id = ? or invited_id = ?) and playlist_has_videos.video_id = ?`;
+
+
 
 const postNewPlaylist = `INSERT INTO playlist SET ?`;
 const allUsers = `SELECT * FROM user WHERE user_id = ?`;
@@ -157,6 +160,20 @@ router.get('/gmoviesinplaylist/:video_id/:creator_id', async function (req, res)
 
     return res.status(200).json(movie.map(item => item.playlist_id));
 });
+
+
+
+router.get('/playlistBymovieanduserid/:video_id',async function (req, res) {
+    const {video_id} = req.params;
+    const creator_id=req.user.user_id;
+    const invited_id=req.user.user_id;
+
+    console.log(creator_id,invited_id,video_id)
+
+    let data = await queryDB(getPlaylistsByuserid, [creator_id,invited_id,video_id])
+
+    return res.status(200).json(data);
+})
 
 router.post('/addMusic', async function (req, res) {
     const {playlist_id, video_id} = req.body;
@@ -375,7 +392,6 @@ router.post('/delete/', async function (req, res) {
 router.post('/remove', async function (req, res) {
     const {playlist_id,creator_id,user_id,video_id} = req.body;
 
-    //let creator_id = 2; //todo ir buscar ao user logado
     if (creator_id !== user_id) {
         return res.status(400).send(["ERROR 400: You are not the owner of this playlist",creator_id,user_id]);
     }
