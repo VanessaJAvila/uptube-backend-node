@@ -100,7 +100,7 @@ router.get("/search/tag", async function (req, res) {
 });
 
 //user creator by video_id
-router.get("/:video_id/user", async function (req, res) {
+router.get("/:video_id/usercreeator", async function (req, res) {
     const {video_id} = req.params;
     if (!video_id) {
         return res.status(400).send("ERROR 400: No video_id provided in request");
@@ -328,6 +328,7 @@ router.get("/user/:user_id", async function (req, res) {
 
 //get video by id for streaming page
 router.get("/stream/:id", async function (req, res) {
+
     const streamVideoById = `SELECT v.video_id, v.title, v.thumbnail, v.description, v.date, v.duration, v.url_video, u.username, v.user_id, u.photo, COUNT(views.view_id) as 'views',
 (SELECT COUNT(reaction_type_id) FROM reaction WHERE video_id=13 and reaction_type_id = 1) as 'likes',
 (SELECT COUNT(reaction_type_id) FROM reaction WHERE video_id=13 and reaction_type_id = 2) as 'dislikes'FROM video as v
@@ -335,6 +336,14 @@ LEFT JOIN user as u ON v.user_id=u.user_id
 LEFT JOIN views ON v.video_id=views.video_id
 WHERE v.video_id = ?`;
     const {id} = req.params;
+    if (isNaN(id)) {
+        res.status(400).send("Invalid video ID");
+        return;
+    }
+    if (!id){
+        res.status(400).send("No video ID was passed");
+        return;
+    }
     try {
         let video = await queryDB(streamVideoById, [id]);
         if (video.length === 0) {
@@ -342,9 +351,47 @@ WHERE v.video_id = ?`;
             return;
         }
         return res.status(200).json(video);
+
     } catch (error) {
-        console.error("ERROR !!", error);
-        return res.status(500).send("ERROR 500: Internal Server Error");
+        return res.status(500).json({
+            message: "Error fetching video",
+            error: error.message
+        });
+    }
+});
+
+//NEW
+router.get("/videoinfocomment/:id", async function (req, res) {
+    const streamVideoById = `SELECT v.video_id, v.title, v.thumbnail, v.description, v.date, v.duration, v.url_video, u.username, v.user_id, u.photo, COUNT(views.view_id) as 'views',
+(SELECT COUNT(reaction_type_id) FROM reaction WHERE video_id=13 and reaction_type_id = 1) as 'likes',
+(SELECT COUNT(reaction_type_id) FROM reaction WHERE video_id=13 and reaction_type_id = 2) as 'dislikes'FROM video as v
+LEFT JOIN user as u ON v.user_id=u.user_id
+LEFT JOIN views ON v.video_id=views.video_id
+WHERE v.video_id = ?`;
+    const {id} = req.params;
+
+    if (isNaN(id)) {
+        res.status(400).send("Invalid video ID");
+        return;
+    }
+    if (!id){
+        res.status(400).send("No video ID was passed");
+        return;
+    }
+    try {
+        let video = await queryDB(streamVideoById, [id]);
+        let comments = await queryDB(getCommentsByVideoID, [id]);
+        if (video.length === 0) {
+            res.status(204).send("There is no video with this ID");
+            return;
+        }
+        let response = Object.assign({}, {video_info: video}, {video_comments: comments});
+        return res.status(200).json(response);
+    } catch (error) {
+        return res.status(500).json({
+            message: "Error fetching video",
+            error: error.message
+        });
     }
 });
 
@@ -363,6 +410,5 @@ router.get("/:id/tags", async function (req, res) {
         return res.status(500).send("ERROR 500: Internal Server Error");
     }
 });
-
 
 module.exports = router;
