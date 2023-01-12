@@ -17,26 +17,27 @@ router.post('/follow/:user_followed_id/', async function (req, res) {
         res.json({success: false, message: 'not getting user_followed_id'});
         return;
     }
+    console.log("there is user followed")
     if (user_id === user_followed_id) {
         res.json({success: false, message: "user cannot follow it´s own channel"});
         return;
     }
 
     const subscription = await queryDB('SELECT * FROM subscriptions WHERE user_followed_id = ? AND user_following_id = ? LIMIT 1', [user_followed_id, user_id]);
-    console.log("subscription", subscription)
-    if (subscription[0]) {
+    if (subscription.length > 0) {
+        console.log("delete req:")
         await queryDB(`DELETE FROM subscriptions WHERE subscriptions.user_followed_id = ? AND subscriptions.user_following_id = ?`, [user_followed_id, user_id]);
         res.json({success: true, message: `${user_id} unfollowed ${user_followed_id}`, subscribed: false});
-        console.log(res)
         return;
     }
+    console.log("subscription:", subscription)
 
-    const createSubscription = await queryDB("INSERT INTO subscriptions SET ?", {
-        user_followed_id: req.params.user_followed_id,
-        user_following_id: req.user.user_id
-    });
-    const newSubscription = await queryDB('SELECT * FROM subscriptions WHERE user_followed_id = ? AND user_following_id = ?', [createSubscription.user_followed_id, createSubscription.user_id]);
-    res.json({success: true, new_subscription: newSubscription[0], message: `${user_id} followed ${user_followed_id}`, subscribed: true});
+        await queryDB("INSERT INTO subscriptions SET ?", {
+            user_followed_id: req.params.user_followed_id,
+            user_following_id: req.user.user_id
+        });
+        return res.json({success: true, new_subscription: subscription[0], message: `${user_id} followed ${user_followed_id}`, subscribed: true});
+
 })
 
 
