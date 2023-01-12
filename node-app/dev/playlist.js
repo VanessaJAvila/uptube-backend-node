@@ -176,22 +176,35 @@ router.get('/playlistBymovieanduserid/:video_id',async function (req, res) {
 })
 
 router.post('/addMusic', async function (req, res) {
-    const {playlist_id, video_id} = req.body;
 
 
-    let data = await queryDB(addMusictoPlaylist, {
-        playlist_id, video_id
-    });
-    return res.status(200).json({success: true, playlist_id: data.insertId});
+    try{
+        const {playlist_id, video_id} = req.body;
+
+
+        let data = await queryDB(addMusictoPlaylist, {
+            playlist_id, video_id
+        });
+        return res.status(200).json({success: true, playlist_id: data.insertId});
+    }catch(e){
+        return  res.status(404).json({success: false, message: 'Já existe este guest na playlist!'});
+    }
+
 });
 
 
 router.post('/guest/addMusic', async function (req, res) {
-    const {playlist_id, video_id} = req.body;
-    let data = await queryDB(addMusictoPlaylist, {
-        playlist_id, video_id
-    });
-    return res.status(200).json({success: true, playlist_id: data.insertId});
+    try{
+        const {playlist_id, video_id} = req.body;
+
+
+        let data = await queryDB(addMusictoPlaylist, {
+            playlist_id, video_id
+        });
+        return res.status(200).json({success: true, playlist_id: data.insertId});
+    }catch(e){
+        return  res.status(404).json({success: false, message: 'Já existe este guest na playlist!'});
+    }
 });
 
 router.get("/guest/:invited_id", async function (req, res) {
