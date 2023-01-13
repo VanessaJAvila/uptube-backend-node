@@ -93,24 +93,12 @@ router.post('/upload', upload, async (req, res) => {
         function command(input, output) {
             return new Promise((resolve, reject) => {
                 ffmpeg(input)
-                    .takeScreenshots({
-                            timemarks: ['3'],
-                            size: '120x90'
-                        }, folderName,
-                        function (err, filenames) {
-                            console.log("filenames", filenames);
-                            console.log('screenshots were saved')
-                        })
-                    .on('start', (command) => {
-                        console.log(folderName)
-                        //console.log('Command:', command);
-                    })
-                    .on('error', (error) => console.log(error))
                     .on('end', () => {
                         console.log("thumbnails created")
                         resolve()
                     })
-                    .run()
+                    .on('error', (error) => console.log(error))
+                    .takeScreenshots({ count: 4, timemarks: [ '1', '3', '6', '9' ] }, folderName)
             })
         }
 
@@ -121,8 +109,10 @@ router.post('/upload', upload, async (req, res) => {
             await command(videoPath, outputPath)
         }
 
-        compress().catch(err => console.log(err))
+        await compress();
+        //compress().catch(err => console.log(err))
         //get duration and format duration
+
 
         const inputMetadata = await metadata(videoPath)
         const durationInSeconds = inputMetadata.format.duration;
@@ -138,10 +128,10 @@ router.post('/upload', upload, async (req, res) => {
             video_key,
             user_id: req.user.user_id,
             thumbnail: "thumbnail",
-            title: file.originalname,
+            title: "title",
             description: "description",
             duration: formatDuration(),
-            url_video: `videos/${video_key}/${video_key}.mp4`
+            url_video: `/videos/${video_key}/${video_key}.mp4`
         }
         // Validate the user_id field
         if (isNaN(reqParams.user_id)) {
@@ -175,8 +165,12 @@ router.post('/upload', upload, async (req, res) => {
         const uploadedVideo = await queryDB("INSERT INTO video SET ?", [reqParams]);
         console.log(reqParams)
 
+        const videoData = Object.assign({}, uploadedVideo, reqParams);
+
+        setTimeout(function() {
+            return res.status(200).send({message: "Video uploaded successfully", data: videoData});
+        }, 2000);
         // Return a success response to the client
-        return res.status(200).send({message: "Video uploaded successfully", data: uploadedVideo});
     } catch (err) {
         // An error occurred, log it and return an error response to the client
         console.error(err);

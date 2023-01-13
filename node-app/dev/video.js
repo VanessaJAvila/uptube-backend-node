@@ -10,7 +10,7 @@ video.url_video as 'url', user.username, user.photo as 'user photo',  COUNT(view
  COUNT(CASE reaction.reaction_type_id WHEN '1' then 1 else null end) as 'likes', COUNT(CASE reaction.reaction_type_id WHEN '2' 
  then 1 else null end) as 'dislikes', 
     (SELECT GROUP_CONCAT(DISTINCT tags.name SEPARATOR ', ')) as 'tags',
-    (SELECT playlist.title from playlist WHERE playlist_has_videos.playlist_id=playlist.playlis t_id) as 'playlist'
+    (SELECT playlist.title from playlist WHERE playlist_has_videos.playlist_id=playlist.playlist_id) as 'playlist'
 FROM video 
 LEFT JOIN user on video.user_id=user.user_id
 LEFT JOIN views on video.video_id=views.video_id
@@ -232,6 +232,7 @@ router.post('/upload', async function (req, res) {
 //Update Video details
 router.post('/:video_id/update', async function (req, res) {
     const {video_id} = req.params;
+
     try {
         const video = await queryDB(`SELECT * FROM video
         WHERE video_id = ?`, [video_id]);
@@ -410,5 +411,7 @@ router.get("/:id/tags", async function (req, res) {
         return res.status(500).send("ERROR 500: Internal Server Error");
     }
 });
+
+
 
 module.exports = router;
