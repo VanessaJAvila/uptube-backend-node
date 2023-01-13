@@ -10,7 +10,7 @@ video.url_video as 'url', user.username, user.photo as 'user photo',  COUNT(view
  COUNT(CASE reaction.reaction_type_id WHEN '1' then 1 else null end) as 'likes', COUNT(CASE reaction.reaction_type_id WHEN '2' 
  then 1 else null end) as 'dislikes', 
     (SELECT GROUP_CONCAT(DISTINCT tags.name SEPARATOR ', ')) as 'tags',
-    (SELECT playlist.title from playlist WHERE playlist_has_videos.playlist_id=playlist.playlis t_id) as 'playlist'
+    (SELECT playlist.title from playlist WHERE playlist_has_videos.playlist_id=playlist.playlist_id) as 'playlist'
 FROM video 
 LEFT JOIN user on video.user_id=user.user_id
 LEFT JOIN views on video.video_id=views.video_id
