@@ -315,7 +315,10 @@ router.get("/:id", async function (req, res) {
 router.get("/user/:user_id", async function (req, res) {
     const {user_id} = req.params;
     try {
-        let video = await queryDB(`SELECT * FROM Video where user_id = ?`, [user_id]);
+        let video = await queryDB(`select video.video_id, video.video_key, video.title, video.thumbnail, video.date, user.user_id, user.username, user.photo, video.duration, video.url_video
+FROM video
+left JOIN user on video.user_id=user.user_id
+WHERE video.user_id = ?`, [user_id]);
         if (video.length === 0) {
             res.status(204).send("There is no videos of this user");
             return;
