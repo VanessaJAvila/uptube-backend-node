@@ -297,9 +297,9 @@ router.post('/:id/update', async function (req, res) {
 
 //Listar playlists de um user(owner)
 router.get("/user/", async function (req, res) {
-    const id = req.user.user_id;
-    const userExists = await queryDB(allUsers, [id]);
-    const userPlaylist = await queryDB(getPlaylistByUserId, [id]);
+    const user = req.user;
+    const userExists = await queryDB(allUsers, [user.user_id]);
+    const userPlaylist = await queryDB(getPlaylistByUserId, [user.user_id]);
 
     if (userExists.length === 0) {
         res.status(400).send("ERROR 400: There is no user with this ID");
