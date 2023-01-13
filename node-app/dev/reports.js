@@ -56,6 +56,15 @@ router.get('/reporter/:reporter_id', async function (req, res) {
     return res.status(200).json(reports_by_reporter);
 });
 
+
+//list all reports
+
+router.get('/all',async function(req, res) {
+    let reports = await queryDB(`SELECT * FROM reports`);
+
+    return res.status(200).json(reports);
+})
+
 //Update report
 
 router.post('/:report_id/update', async function (req, res) {

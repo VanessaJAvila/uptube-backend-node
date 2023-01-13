@@ -54,6 +54,7 @@ app.use("/history", require ("./dev/history.js"));
 app.use("/videotutorial", require ("./dev/assets/app.js"));
 app.use("/studio", require ("./dev/studio.js"));
 app.use("/views", require("./dev/views.js"));
+app.use("/reports", require("./dev/reports.js"));
 
 
 app.listen(3001);
