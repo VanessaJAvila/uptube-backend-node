@@ -30,7 +30,7 @@ const storage = multer.diskStorage({
         folderName = path.join(__dirname, '../public/videos', `${video_key}`);
         if (!fs.existsSync(folderName)) {
             fs.mkdirSync(folderName, {recursive: true}, (error) => {
-                console.log(error)
+               // console.log(error)
             });
         }
         cb(null, 'public/videos/' + video_key + '/')

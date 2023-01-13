@@ -237,8 +237,8 @@ router.get("/channel/:user_id", async function (req, res) {
 
 //editar 1 user
 
-router.post('/:user_id/edit', async function (req, res) {
-    let user = await queryDB('SELECT * FROM user WHERE user_id =?', [req.params.user_id]);
+router.post('/edit', async function (req, res) {
+    let user = req.user
 
     if (user.length === 0) {
         res.status(404).send("não existe este user id");
@@ -283,53 +283,51 @@ router.post('/:user_id/edit', async function (req, res) {
 
     if (update_valores.length > 0) {
         await queryDB("UPDATE user SET " + update_campos.map(campo => campo + " = ?").join(", ") + " WHERE user_id = ?",
-            [...update_valores, req.params.user_id]);
+            [...update_valores, user.user_id]);
     }
 
-    let userEdit = await queryDB("Select * from user where user_id = ?", [req.params.user_id]);
+    let userEdit = await queryDB("Select * from user where user_id = ?", [user.user_id]);
 
 
     res.status(200).send(userEdit);
 })
 
 
-router.post("/:user_id/edit/upload/avatar", upload.single('photo'), (req, res) => {
+router.post("/edit/upload/avatar", upload.single('photo'), (req, res) => {
+    let user =req.user
     if (!req.file) {
         console.log("No file upload");
     } else {
-        console.log(req.file, "REQ file dentro upload");
-        let imgsrc = 'http://localhost:3001/avatar/' + req.file.filename;
-        console.log(imgsrc, "img src");
+        let imgsrc = 'http://localhost:3001/avatar/' + req.file.filename
         let insertData = queryDB("UPDATE user SET ?  WHERE user_id = ?", [{
             photo: imgsrc
-        }, req.params.user_id]);
+        }, user.user_id]);
     }
-    let userPhoto = queryDB("Select * from user where user_id = ?", [req.params.user_id]);
+    let userPhoto = queryDB("Select * from user where user_id = ?", [user.user_id]);
 
     res.status(200).json(req.file);
 });
 
 
-router.post("/:user_id/edit/upload/header", upl.single('photo'), (req, res) => {
+router.post("/edit/upload/header", upl.single('photo'), (req, res) => {
+    let user = req.user
     if (!req.file) {
         console.log("No file upload");
     } else {
-        console.log(req.file, "REQ file dentro upload");
         let imgsrc = 'http://localhost:3001/header/' + req.file.filename;
-        console.log(imgsrc, "img src");
         let insertData = queryDB("UPDATE user SET ?  WHERE user_id = ?", [{
             header: imgsrc
-        }, req.params.user_id]);
+        }, user.user_id]);
     }
-    let userPhoto = queryDB("Select * from user where user_id = ?", [req.params.user_id]);
+    let userPhoto = queryDB("Select * from user where user_id = ?", [user.user_id]);
 
     res.status(200).json(req.file);
 });
 
 //delete user
 
-router.post('/:user_id/delete', async function (req, res) {
-    let user = await queryDB("Select * from user where user_id = ?", [req.params.user_id]);
+router.post('/delete', async function (req, res) {
+    let user = req.user;
 
     if (user.length === 0) {
         res.status(400).send("não existe este user");
@@ -341,7 +339,7 @@ router.post('/:user_id/delete', async function (req, res) {
         res.send("user apagado");
     });
 
-    await queryDB("DELETE FROM user WHERE user_id = ?", [req.params.user_id]);
+    await queryDB("DELETE FROM user WHERE user_id = ?", [user.user_id]);
 
 });
 
@@ -529,14 +527,14 @@ router.post('/readNotifications', async function (req, res) {
 router.get('/:receiver_id/notification/send', async function (req, res) {
     let mail_receiver = await queryDB(`SELECT email FROM user u LEFT JOIN notifications n on u.user_id = n.receiver_id 
                         WHERE receiver_id = ?`, [req.params.receiver_id])
-    console.log(mail_receiver)
+
     const email = mail_receiver[0].email;
     const receiver_email = JSON.stringify(email);
     await sendMail(receiver_email, req.body.subject, req.body.text);
 })
 
-router.get('/watchhistory/:user_id', async function (req, res) {
-    const {user_id} = req.params;
+router.get('/watchhistory/', async function (req, res) {
+    let user_id = req.user.user_id;
     let watchhistory = await queryDB(`SELECT DATE(views.timestamp_start) as 'date', video.title, views.video_id, video.thumbnail, video.duration, video.description, video.url_video, user.username as 'channel', COUNT(views.video_id) as 'total_views'
         FROM views
         LEFT JOIN video on views.video_id=video.video_id

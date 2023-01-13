@@ -106,10 +106,9 @@ const deleteGfromPlaylist = `DELETE FROM playlist_has_invitees WHERE playlist_ha
 
 router.get("/guest/playlists", async function (req, res) {
 
-    const id = req.user.user_id;
+    let id = req.user.user_id;
     const userExists = await queryDB(allUsers, [id]);
     const userPlaylist = await queryDB(getPlaylistByGId, [id]);
-
 
     if (userExists.length === 0) {
         return res.status(400).send("ERROR 400: There is no user with this ID");
@@ -133,8 +132,9 @@ router.get('/ginplaylist', async function (req, res) {
 
     return res.status(200).json(movie);
 });
-router.get('/moviesinplaylist/:video_id/:creator_id', async function (req, res) {
-    const {video_id,creator_id} = req.params;
+router.get('/moviesinplaylist/:video_id/', async function (req, res) {
+    const {video_id} = req.params;
+   let creator_id = req.user.user_id;
     let movie = await queryDB(getPlaylistsByMovie, [video_id, creator_id]);
 
     if (movie.length === 0) {
@@ -148,8 +148,9 @@ router.get('/moviesinplaylist/:video_id/:creator_id', async function (req, res) 
 
 
 
-router.get('/gmoviesinplaylist/:video_id/:creator_id', async function (req, res) {
-    const {video_id,creator_id} = req.params;
+router.get('/gmoviesinplaylist/:video_id/', async function (req, res) {
+    const {video_id} = req.params;
+    let creator_id = req.user.user_id
     let movie = await queryDB(getPlaylistsByGuestId, [video_id, creator_id]);
 
     if (movie.length === 0) {
@@ -168,7 +169,6 @@ router.get('/playlistBymovieanduserid/:video_id',async function (req, res) {
     const creator_id=req.user.user_id;
     const invited_id=req.user.user_id;
 
-    console.log(creator_id,invited_id,video_id)
 
     let data = await queryDB(getPlaylistsByuserid, [creator_id,invited_id,video_id])
 
@@ -207,8 +207,8 @@ router.post('/guest/addMusic', async function (req, res) {
     }
 });
 
-router.get("/guest/:invited_id", async function (req, res) {
-    const {invited_id} = req.params;
+router.get("/guest", async function (req, res) {
+    let invited_id = req.user.user_id;
     const userExists = await queryDB(allUsers, [invited_id]);
     const guestUserPlaylist = await queryDB(getPlaylistByGuestId, [invited_id]);
 
@@ -296,8 +296,8 @@ router.post('/:id/update', async function (req, res) {
 });
 
 //Listar playlists de um user(owner)
-router.get("/user/:id", async function (req, res) {
-    const {id} = req.params;
+router.get("/user/", async function (req, res) {
+    const id = req.user.user_id;
     const userExists = await queryDB(allUsers, [id]);
     const userPlaylist = await queryDB(getPlaylistByUserId, [id]);
 
@@ -313,15 +313,6 @@ router.get("/user/:id", async function (req, res) {
     return res.status(200).json(userPlaylist);
 });
 
-/*
-   let confirmation=await queryDB(getAllGplaylists);
-    console.log(confirmation.includes(1), "COOOOOOOOOOOOOOOOOOOOOOOOOOOOOOONNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNFFFFFFFFFFIRMATION");
-
-    if(confirmation[0].playlist_id === playlist_id && confirmation[0].invited_id === invited_id){
-        return res.status(400).json({message: '[THIS USER IS ALREADY IN PLAYLIST]'})
-    }
-
- */
 
 
 router.post('/addguestplaylist', async function (req, res) {
@@ -391,7 +382,8 @@ router.post('/deletegfromp/', async function (req, res) {
 
 
 router.post('/delete/', async function (req, res) {
-    const {playlist_id,creator_id,user_id} = req.body;
+    const {playlist_id,creator_id} = req.body;
+    let user_id = req.user.user_id
 
     if (creator_id !== user_id) {
         return res.status(400).send("ERROR 400: You are not the owner of this playlist");
