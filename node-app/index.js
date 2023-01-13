@@ -40,6 +40,7 @@ app.use(express.static('public'))
 
 
 app.use("/video", require("./dev/video.js"));
+app.use("/videos", require("./dev/thumbnails.js"));
 app.use("/tags", require("./dev/tags.js"));
 app.use("/report", require("./dev/reports.js"));
 app.use("/user", require("./dev/user.js"));
@@ -53,5 +54,7 @@ app.use("/suggested", require ("./dev/suggested.js"));
 app.use("/history", require ("./dev/history.js"));
 app.use("/videotutorial", require ("./dev/assets/app.js"));
 app.use("/studio", require ("./dev/studio.js"));
+app.use("/views", require("./dev/views.js"));
+
 
 app.listen(3001);

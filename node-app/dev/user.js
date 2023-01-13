@@ -52,7 +52,7 @@ let upl = multer({
 
 
 router.get('/current', function (req, res) {
-    console.log(req.user, " req user current")
+    //console.log(req.user, " req user current")
     res.send(req.user);
 });
 

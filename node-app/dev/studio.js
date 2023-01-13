@@ -24,9 +24,16 @@ const checkIfIDisValid = () => {
 }
 checkIfIDisValid();
 
+let folderName;
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'public/videos/'+video_key+'/')
+        folderName = path.join(__dirname, '../public/videos', `${video_key}`);
+        if (!fs.existsSync(folderName)) {
+            fs.mkdirSync(folderName, {recursive: true}, (error) => {
+                console.log(error)
+            });
+        }
+        cb(null, 'public/videos/' + video_key + '/')
     },
     filename: (req, file, cb) => {
         cb(null, video_key + path.extname(file.originalname))
@@ -59,29 +66,19 @@ const upload = multer({
 }).single('file')
 
 router.post('/upload', upload, async (req, res) => {
-    const folderName = path.join(__dirname, '../public/videos', `${video_key}`);
 
-    fs.mkdir(folderName, { recursive: true }, (error) => {
-        if (error) {
-            console.error(error);
-        } else {
-            console.log(`Folder ${folderName} created`);
-        }
-    });
-        const file = req.file;
-        //console.log(req.file)
-        try {
-            if (!file) {
+    const file = req.file;
+    //console.log(req.file)
+    try {
+        if (!file) {
             video_key = shortID();
             return res.status(200).send("No video to upload");
         }
-
-
         const videoPath = `./public/videos/${video_key}/${video_key}${path.extname(file.originalname)}`;
         ffmpeg.setFfmpegPath(ffmpegPath)
         ffmpeg.setFfprobePath(ffprobePath)
 
-        function metadata (path) {
+        function metadata(path) {
             return new Promise((resolve, reject) => {
                 ffmpeg.ffprobe(path, (err, metadata) => {
                     if (err) {
@@ -93,55 +90,49 @@ router.post('/upload', upload, async (req, res) => {
         }
 
 
-        function command (input, output) {
+        function command(input, output) {
             return new Promise((resolve, reject) => {
                 ffmpeg(input)
-                    .takeScreenshots({
-                        timemarks: ['1', '3', '6', '9'],
-                        count: 3
-                    }, folderName)
-                    .on('start', (command) => {
-                        console.log(folderName)
-                        //console.log('Command:', command);
-                    })
-                    .on('error', (error) => console.log(error))
                     .on('end', () => {
                         console.log("thumbnails created")
                         resolve()
                     })
-                    .run()
+                    .on('error', (error) => console.log(error))
+                    .takeScreenshots({ count: 4, timemarks: [ '1', '3', '6', '9' ] }, folderName)
             })
         }
 
-        async function compress () {
-            const outputPath = path.join(__dirname, '/../public/videos/', `${video_key}/` , `${video_key}.mp4`)
+        async function compress() {
+            console.log("entered compress")
+            const outputPath = path.join(__dirname, '/../public/videos/', `${video_key}/`, `${video_key}.mp4`)
             const inputMetadata = await metadata(videoPath)
             await command(videoPath, outputPath)
         }
-        compress().catch(err => console.log(err))
-            //get duration and format duration
 
-            const inputMetadata = await metadata(videoPath)
-            const durationInSeconds = inputMetadata.format.duration;
-            const formatDuration = () => {
-                if (durationInSeconds < 3600){
-                    return new Date(durationInSeconds * 1000).toISOString().slice(14, 19)
-                }
-                else{
-                    return new Date(durationInSeconds * 1000).toISOString().slice(11, 19);
-                }
+        await compress();
+        //compress().catch(err => console.log(err))
+        //get duration and format duration
+
+
+        const inputMetadata = await metadata(videoPath)
+        const durationInSeconds = inputMetadata.format.duration;
+        const formatDuration = () => {
+            if (durationInSeconds < 3600) {
+                return new Date(durationInSeconds * 1000).toISOString().slice(14, 19)
+            } else {
+                return new Date(durationInSeconds * 1000).toISOString().slice(11, 19);
             }
+        }
         // Generate the url_video value using the video_key and the file's original extension
-            let reqParams = {
-                video_key,
-                user_id: "4", //todo: logged user
-                thumbnail: "thumbnail",
-                title: file.originalname,
-                description: "description",
-                duration: formatDuration(),
-                url_video: `videos/${video_key}/${video_key}.mp4`
-            }
-
+        let reqParams = {
+            video_key,
+            user_id: req.user.user_id,
+            thumbnail: "thumbnail",
+            title: "title",
+            description: "description",
+            duration: formatDuration(),
+            url_video: `/videos/${video_key}/${video_key}.mp4`
+        }
         // Validate the user_id field
         if (isNaN(reqParams.user_id)) {
             return res.status(400).send("Invalid user_id: must be an integer");
@@ -171,11 +162,15 @@ router.post('/upload', upload, async (req, res) => {
         if (!reqParams.url_video) {
             return res.status(400).send("URL field is required");
         }
-
-        await queryDB("INSERT INTO video SET ?", [reqParams]);
+        const uploadedVideo = await queryDB("INSERT INTO video SET ?", [reqParams]);
         console.log(reqParams)
+
+        const videoData = Object.assign({}, uploadedVideo, reqParams);
+
+        setTimeout(function() {
+            return res.status(200).send({message: "Video uploaded successfully", data: videoData});
+        }, 2000);
         // Return a success response to the client
-        return res.status(200).send("Video uploaded successfully");
     } catch (err) {
         // An error occurred, log it and return an error response to the client
         console.error(err);
