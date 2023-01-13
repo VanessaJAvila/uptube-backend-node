@@ -18,10 +18,9 @@ router.post('/:video_id/new', async function (req, res) {
             reporter_id,
             report_state
         })
-        console.log("video_id: ", video_id, "report_type_id: ", report_type_id, "details: ",details, "reporter_id: ")
+       // console.log("video_id: ", video_id, "report_type_id: ", report_type_id, "details: ",details, "reporter_id: ")
         res.status(200).json({success: true, new_report});
     } catch(err){
-        console.log(err)
         return res.status(404).json({success: false, error: err, message: '[ERROR] Insert valid data'});
     }
 });

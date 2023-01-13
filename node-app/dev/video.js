@@ -272,7 +272,7 @@ router.post('/:video_id/update', async function (req, res) {
         return res.status(200).send('Updated!');
     } catch (error) {
         console.error(error);
-        return res.status(500).send("ERROR 500: Internal Server Error");
+        return res.status(500).json({message:"ERROR 500: Internal Server Error"});
     }
 });
 
